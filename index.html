@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090d16">
+<meta name="color-scheme" content="dark light">
+<title>Simulador TCG</title>
+<style>
+:root{--bg:#090d16;--p:#101726;--p2:#182238;--t:#e8eefb;--m:#8d9bb9;--a:#3b82f6;--ac:#ffffff;--d:#f0607a;--b:#26334f;--ar:#ff5d6c}
+[data-theme=light]{--bg:#f0f5fb;--p:#ffffff;--p2:#e2edf8;--t:#0f1b33;--m:#52627f;--b:#cbd5e1;--a:#2563eb;--ac:#ffffff;--d:#d93a52}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button,.btn,.chip,select,label,nav button{touch-action:manipulation}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--t);font:14px/1.4 "Trebuchet MS",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top)}
+body.inplay{padding-top:0}body.inplay nav{display:none}
+h2,h3{margin:0 0 8px}h2{font-size:20px}h3{font-size:15px}
+.m{color:var(--m)}
+main{flex:1;min-height:0;position:relative}
+.view{display:none;position:absolute;top:0;right:0;bottom:0;left:0;overflow:auto;padding:12px}
+.view.on{display:block}
+#v-play.on{display:flex;flex-direction:column}
+#v-play{padding:0;overflow:hidden}
+nav{display:flex;background:var(--p);border-top:1px solid var(--b);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;color:var(--m);padding:9px 0;font:inherit;font-size:11px;cursor:pointer;border-top:3px solid transparent}
+nav button.on{color:var(--a);border-top-color:var(--a);font-weight:700}
+nav button b{display:block;font-size:17px;font-weight:400}
+.btn{display:inline-block;background:var(--p2);color:var(--t);border:1px solid var(--b);border-radius:8px;padding:7px 11px;font:inherit;cursor:pointer;min-height:36px}
+.btn.pri{background:var(--a);color:var(--ac);border-color:var(--a);font-weight:700}
+.btn.dng{color:var(--d)}
+.bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+input[type=text],input[type=number],select{background:var(--p2);color:var(--t);border:1px solid var(--b);border-radius:8px;padding:7px;font:inherit;min-height:36px;min-width:0}
+input[type=text]{flex:1;min-width:110px}
+.chip{background:var(--p2);color:var(--t);border:1px solid var(--b);border-radius:20px;padding:5px 12px;font:inherit;cursor:pointer}
+.chip.on{background:var(--a);color:var(--ac);border-color:var(--a);font-weight:700}
+.chip b{margin-left:5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.th{cursor:pointer;min-width:0;position:relative}
+.th img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:6px;display:block;background:var(--p2)}
+.th small{display:block;font-size:11px;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.th em{font-style:normal;font-size:10px;color:var(--m);display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.th.cut,.lr.cut{opacity:.45}
+.th.sel img{outline:3px solid var(--a)}
+.ck{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);border:2px solid #fff;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;font-style:normal}
+.sel .ck{background:var(--a);border-color:var(--a);color:var(--ac)}
+.lr .ck{position:static;flex:none}
+.list{display:flex;flex-direction:column;gap:6px}
+.lr{display:flex;gap:10px;align-items:center;background:var(--p);border:1px solid var(--b);border-radius:8px;padding:6px;cursor:pointer}
+.lr.sel{border-color:var(--a)}
+.lr img{width:38px;height:53px;object-fit:cover;border-radius:4px;flex:none}
+.lr div{min-width:0}.lr b,.lr small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lr small{color:var(--m)}
+.selbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--p);border:1px solid var(--a);border-radius:10px;padding:6px 8px;margin-bottom:8px;position:sticky;top:0;z-index:5}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--b)}.kv span{color:var(--m)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.dc{display:flex;gap:12px;align-items:center;background:var(--p);border:1px solid var(--b);border-radius:12px;padding:10px;cursor:pointer}
+.dc img,.dc .ph,.eth{width:64px;height:90px;object-fit:cover;border-radius:6px;flex:none;background:var(--p2);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:3px 3px 0 var(--b)}
+.eth{width:44px;height:62px;cursor:pointer;font-size:20px}
+.di{flex:1;min-width:0}.di small{display:block;color:var(--m);font-size:12px}
+.empty{grid-column:1/-1;text-align:center;padding:50px 10px;display:flex;flex-direction:column;gap:8px;align-items:center;font-size:16px}
+.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:0;background:var(--a);color:var(--ac);font-size:32px;line-height:1;box-shadow:0 4px 14px rgba(0,0,0,.5);cursor:pointer;display:none;align-items:center;justify-content:center;z-index:50}
+#ded{display:none;flex-direction:column;height:100%}
+.blk{flex:1 1 0;min-height:150px;display:flex;flex-direction:column;background:var(--p);border-radius:10px;padding:8px;margin-bottom:8px;overflow:hidden}
+.blk>.bar{flex:none;margin-bottom:6px}.blk>.sc{flex:1;min-height:0;overflow:auto}
+.blk.up{flex:3 1 0;min-height:380px}.blk.dn{flex:2 1 0;min-height:210px}
+.th .bd{position:absolute;top:3px;right:3px;background:var(--a);color:var(--ac);border-radius:10px;padding:0 6px;font-style:normal;font-size:11px;font-weight:700}
+.dkg{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px}
+.dk{display:flex;align-items:center;gap:2px;background:var(--p2);border-radius:10px;padding:4px}
+.dk button{flex:none;width:24px;min-height:58px;align-self:center;border-radius:8px;border:1px solid var(--b);background:var(--p);color:var(--t);font-size:20px;line-height:1;cursor:pointer;padding:0}
+.dk button.pl{background:var(--a);color:var(--ac);border-color:var(--a)}
+.dkc{flex:1;min-width:0;text-align:center}
+.dkc img{width:100%;max-width:64px;height:auto;aspect-ratio:5/7;object-fit:cover;border-radius:5px;display:block;margin:0 auto}
+.dkc b{display:block;font-size:14px;margin-top:2px}
+.dkc small{display:block;font-size:10px;color:var(--m);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pn{overflow:auto;background:var(--p);border-radius:10px;padding:8px}
+#avail{grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:6px}
+#avail .th small{font-size:10px}
+.row{display:flex;align-items:center;gap:6px;margin-bottom:6px;background:var(--p2);border-radius:8px;padding:4px}
+.row img{width:34px;height:48px;object-fit:cover;border-radius:4px}
+.row span{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row button{width:34px;height:34px;border-radius:8px;border:1px solid var(--b);background:var(--p);color:var(--t);font-size:18px;cursor:pointer}
+.ir img{width:56px;height:78px}.ir{align-items:flex-start;padding:6px}.row.bad{outline:2px solid var(--d)}
+.set{background:var(--p);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.set label{display:flex;gap:8px;align-items:center}
+#setup{flex:1;overflow:auto;padding:12px}#setup.off{display:none}
+#game{display:none;flex:1;min-height:0;flex-direction:column}#game.on{display:flex}
+.hl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;font-size:11px;color:var(--m);min-height:30px}
+.hl .st{display:none}
+.lp{display:inline-flex;gap:3px;align-items:center}
+.lp button{min-width:34px;height:30px;border-radius:7px;border:1px solid var(--b);background:var(--p2);color:var(--t);font:inherit;font-size:12px;cursor:pointer;padding:0 5px}
+.lp .num{min-width:62px;font-weight:700;font-size:15px;background:var(--p)}.lp .num.z{color:var(--d)}
+.lp .who{margin-right:4px;color:var(--t)}
+#tray,#trv{background:var(--p);padding:4px 8px;flex:none}
+#trv{border-bottom:1px solid var(--b);display:none}
+#tray{border-top:1px solid var(--b)}
+body.inplay #tray{padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+body.inplay #trv{padding-top:calc(4px + env(safe-area-inset-top))}
+.tl{display:flex;gap:6px;overflow-x:auto;touch-action:pan-x;min-height:68px;padding:2px 0 3px}
+.tl>.tc:first-child{margin-left:auto}.tl>.tc:last-child{margin-right:auto}.tl>span{margin:auto}
+.tc{flex:0 0 auto;width:46px;touch-action:pan-x;cursor:grab}
+.tc img,.tc .back{width:100%;height:64px;object-fit:cover;border-radius:4px;display:block;pointer-events:none}
+.tc .back,.bc.dn,.pile{background:radial-gradient(circle at 50% 50%,#0b1330 0 13%,rgba(147,197,253,.85) 14% 17%,transparent 18%),repeating-linear-gradient(45deg,#1d4ed8 0 6px,#172554 6px 12px)}
+#mat{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none;--cw:70px;background:#0c1f3d;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#cl{position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none}
+.bc,.pile{position:absolute;width:var(--cw);height:calc(var(--cw)*1.4);transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;cursor:grab;user-select:none}
+.bc{border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.55);transition:transform .15s}
+.bc.rv{outline:2px solid #f0b27a}
+.bc img{width:100%;height:100%;object-fit:cover;border-radius:5px;display:block;pointer-events:none}
+.bc.dn,.pile{border:2px solid #93c5fd}
+.pile.rv{border-color:#f0b27a}
+.pile{border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:10px;text-align:center;line-height:1.1;padding:2px}
+.pile span{background:rgba(0,0,0,.6);padding:1px 4px;border-radius:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pile b{font-size:18px;text-shadow:0 1px 3px #000}
+.pile.e{opacity:.5}
+.pile{border-radius:5px;display:block;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.55),inset 0 0 0 3px rgba(9,13,22,.35)}
+.pile .pbd{position:absolute;top:-9px;right:-7px;min-width:22px;height:20px;padding:0 6px;border-radius:10px;background:var(--a);color:#fff;font:700 11px/17px system-ui,sans-serif;text-align:center;font-style:normal;border:1.5px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none}
+.pile .pnm{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);max-width:130%;padding:0 6px;border-radius:6px;background:rgba(9,13,22,.65);color:rgba(255,255,255,.85);font:500 9px/14px system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.drag{transition:none!important;cursor:grabbing;filter:drop-shadow(0 8px 10px rgba(0,0,0,.6))}
+.bc.sel{outline:3px solid #60a5fa;outline-offset:1px;box-shadow:0 0 0 4px rgba(96,165,250,.35),0 0 18px 4px rgba(59,130,246,.75)}
+.bc.atk{outline:3px dashed var(--ar);outline-offset:2px;animation:atkp .8s ease-in-out infinite alternate}
+@keyframes atkp{from{box-shadow:0 0 0 0 rgba(255,93,108,0)}to{box-shadow:0 0 16px 4px rgba(255,93,108,.8)}}
+@keyframes fxv{0%{translate:0 0;rotate:0deg}20%{translate:-1.6px .8px;rotate:-.7deg}40%{translate:1.4px -1px;rotate:.6deg}60%{translate:-1px -.8px;rotate:-.5deg}80%{translate:1.2px .9px;rotate:.5deg}100%{translate:0 0;rotate:0deg}}
+@keyframes fxg{0%{box-shadow:0 2px 6px rgba(0,0,0,.55)}30%{box-shadow:0 0 20px 6px rgba(96,165,250,.9)}100%{box-shadow:0 2px 6px rgba(0,0,0,.55)}}
+.bc.fx{animation:fxv .1s ease-in-out 10,fxg 1s ease-out 1}
+#ar{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:45000;overflow:visible}
+.arl{fill:none;stroke:var(--ar);stroke-width:4;stroke-linecap:round;stroke-dasharray:11 8;animation:arf .55s linear infinite}
+.arg{fill:none;stroke:rgba(255,93,108,.35);stroke-width:11;stroke-linecap:round}
+.arp{opacity:.7}
+@keyframes arf{to{stroke-dashoffset:-19}}
+#tb button,#hm button,#gm button{min-height:40px}
+.snap{transition:left .2s ease-out,top .2s ease-out,transform .15s}
+.zone{position:absolute;pointer-events:none;z-index:0;border:2px dashed rgba(147,197,253,.45);border-radius:8px;background:rgba(59,130,246,.07)}
+.zone span{position:absolute;left:6px;top:3px;font-size:10px;color:rgba(255,255,255,.7);max-width:90%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.bi{display:flex;gap:10px;align-items:center;background:var(--p2);border-radius:10px;padding:8px;margin-bottom:6px}
+.bth{position:relative;width:84px;height:54px;flex:none;border-radius:6px;background:#0c1f3d;overflow:hidden}
+.bth i{position:absolute;border:1px solid #93c5fd;background:rgba(59,130,246,.35);border-radius:2px}
+#be{position:fixed;top:0;right:0;bottom:0;left:0;z-index:280000;background:var(--bg);display:none;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#be.on{display:flex}
+#be .bt{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px}
+#be .bt input[type=text]{flex:1}
+#bec{position:relative;flex:1;min-height:0;margin:0 8px 8px;border-radius:10px;overflow:hidden;touch-action:none;border:1px solid var(--b);-webkit-user-select:none;user-select:none}
+#bec::after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px dashed rgba(255,255,255,.12);pointer-events:none}
+.bl{position:absolute;left:0;right:0;text-align:center;color:rgba(255,255,255,.25);font:600 12px system-ui,sans-serif;font-style:normal;pointer-events:none}.bl.t{top:6px}.bl.b{bottom:6px}
+.bz{position:absolute;border:2px dashed rgba(147,197,253,.8);background:rgba(59,130,246,.15);border-radius:8px;touch-action:none;cursor:move}
+.bz.sel{border-style:solid;border-color:#60a5fa;background:rgba(59,130,246,.3)}
+.bz.tmp{pointer-events:none}
+.bz span{position:absolute;left:6px;top:3px;font-size:11px;color:#fff;max-width:90%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none;text-shadow:0 1px 2px #000}
+.bz .rh{position:absolute;right:-10px;bottom:-10px;width:28px;height:28px;border-radius:8px;background:#3b82f6;border:2px solid #fff;touch-action:none;cursor:nwse-resize}
+.bz.fit{border-color:#22d3ee;background:rgba(34,211,238,.16)}
+.bz.sel.fit{border-color:#67e8f9}
+.bz .ori{position:absolute;left:50%;top:2px;transform:translateX(-50%);font-size:10px;line-height:1;color:#fff;pointer-events:none;opacity:.9;font-style:normal}
+#be .bt label{display:flex;align-items:center;gap:6px;font-size:13px}
+#bsp .rg{display:flex;gap:4px;align-items:center}
+#bsp .rg .chip{padding:5px 10px}
+.gl{position:absolute;pointer-events:none;z-index:6;filter:drop-shadow(0 0 3px #ff2bd6) drop-shadow(0 0 7px rgba(255,43,214,.75))}
+.gl.v{width:0;border-left:2px dashed #ff2bd6;margin-left:-1px}
+.gl.h{height:0;border-top:2px dashed #ff2bd6;margin-top:-1px}
+.gl.gf{animation:glfade .3s ease-in .45s forwards}
+@keyframes glfade{to{opacity:0}}
+.cwp{display:flex;flex-direction:column;align-items:center;gap:6px}
+.cwv{width:170px;height:222px;border:1px dashed var(--b);border-radius:10px;background:var(--p2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cwc{flex:none;border-radius:5px;box-shadow:0 2px 8px rgba(0,0,0,.5);background:repeating-linear-gradient(45deg,#1d4ed8 0 6px,#172554 6px 12px);border:2px solid #93c5fd;transition:width .08s,height .08s}
+.cwc.img{border:0;background-repeat:no-repeat;background-size:cover;background-position:center}
+.cwp small{font-size:12px;text-align:center;max-width:170px}
+.cn{position:absolute;z-index:46000;display:flex;align-items:center;gap:2px;padding:2px 3px;border-radius:10px;background:rgba(9,13,22,.45);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.85);font-size:12px;opacity:.8;-webkit-user-select:none;user-select:none}
+.cn[hidden]{display:none}
+#cnm{left:8px;bottom:8px}#cnr{right:58px;top:8px}
+.cn:hover,.cn:focus-within{opacity:1}
+.cn .cl{font-size:10px;margin:0 3px 0 4px;opacity:.7}
+.cn button{background:none;border:0;color:inherit;font:inherit;min-width:28px;height:28px;border-radius:8px;cursor:pointer;touch-action:manipulation;padding:0}
+.cn button:active{background:rgba(255,255,255,.15)}
+.cn .cv{min-width:34px;font-weight:700;font-size:14px}
+.mk{position:absolute;pointer-events:none;font-style:normal;line-height:1}
+.mk.n{top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.mk.d{top:-3px;left:-3px;width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 1px 2px rgba(0,0,0,.6)}
+@media(prefers-reduced-motion:reduce){.arl{animation:none}}
+#hb{position:absolute;top:8px;right:8px;width:42px;height:42px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#fff;font-size:22px;cursor:pointer;z-index:100000}
+#tb,#gm,#hm{display:flex;gap:4px;background:var(--p);border:1px solid var(--b);border-radius:10px;padding:5px;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+#tb{position:absolute;z-index:99999;transform:translateX(-50%);flex-wrap:wrap;justify-content:center;max-width:calc(100% - 8px)}
+#tb.v,#gm,#hm{flex-direction:column}
+#gm{position:absolute;top:56px;right:8px;z-index:100000;min-width:200px;max-height:calc(100% - 64px);overflow:auto}
+#hm{position:fixed;z-index:250000}
+#tb[hidden],#gm[hidden],#hm[hidden]{display:none}
+#tb button,#gm button,#hm button{background:var(--p2);color:var(--t);border:0;border-radius:7px;padding:9px 11px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap;text-align:left}
+#hud{position:fixed;left:8px;top:8px;z-index:50000;display:flex;align-items:center;gap:.4em;max-width:calc(100vw - 16px);background:rgba(9,13,22,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12);border-radius:.9em;padding:.3em .4em;color:#e8eefb;font-size:calc(var(--hs,1)*12px);line-height:1.2;touch-action:none;-webkit-user-select:none;user-select:none}
+#hud.list{flex-direction:column;align-items:stretch;width:11em;gap:.15em}
+#hud button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
+#hud .hg{flex:none;width:1.6em;height:1.9em;display:flex;align-items:center;justify-content:center;color:rgba(232,238,251,.55);font-size:1.15em;cursor:grab;touch-action:none;border-radius:.5em}
+#hud .hr{display:flex;align-items:center;gap:.2em}
+#hud.list .hg{flex:1;width:auto;height:1.5em;font-size:.95em}
+#hud .tn{font-weight:700;padding:.4em .25em;white-space:nowrap}
+#hud.list .tn{text-align:center;padding:.15em 0}
+#hud .tn2{text-align:center;color:#93c5fd;font-size:.9em}
+#hud .cur{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.15}
+#hud .cur b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+#hud .cur small{color:#93c5fd;font-size:.85em}
+#hud .ph{display:block;width:100%;text-align:left;padding:.35em .5em;border-radius:.5em;color:rgba(232,238,251,.7)}
+#hud .ph.on{background:rgba(59,130,246,.9);color:#fff;font-weight:600}
+#hud .nr{display:flex;gap:.3em}
+#hud .nx{min-width:2.6em;min-height:2.8em;padding:0 .5em;border-radius:.6em;background:rgba(255,255,255,.1);font-size:1.2em;line-height:1}
+#hud .go{flex:1;background:var(--a);color:#fff;font-weight:600}
+#hud .zm{flex:none;width:1.9em;height:1.9em;border-radius:.5em;color:rgba(232,238,251,.6)}
+.phr{display:flex;align-items:center;gap:6px;background:var(--p2);border-radius:8px;padding:4px 8px;margin:4px 0}
+.phr span{flex:1}.phr i{color:var(--m);font-size:11px;font-style:normal}
+.phr button{width:32px;height:30px;border-radius:7px;border:1px solid var(--b);background:var(--p);color:var(--t);cursor:pointer}
+.phr button:disabled{opacity:.3;cursor:default}
+.phr input{flex:1;min-width:0;min-height:30px;padding:4px 8px}.phr b{color:var(--m);min-width:20px}
+.lp.act{outline:2px solid var(--a);border-radius:9px;padding:1px 3px}
+.dice{display:flex;gap:28px;justify-content:center;margin:12px 0}
+.dice div{text-align:center}.dice span{display:block;color:var(--m)}.dice b{font-size:76px;line-height:1.1;display:block}
+@media(min-width:560px){.hl .st{display:inline}}
+@media(min-width:900px){.tc{width:60px}.tc img,.tc .back{height:84px}.tl{min-height:90px}#hud{font-size:calc(var(--hs,1)*13px)}.lp button{min-width:38px;height:34px}.hl{font-size:13px}}
+#ghost{position:fixed;z-index:299999;pointer-events:none;transform:translate(-50%,-50%);opacity:.9;border-radius:5px;box-shadow:0 8px 18px rgba(0,0,0,.6)}
+#md{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.65);z-index:300000;display:none;align-items:center;justify-content:center;padding:10px}
+#md.on{display:flex}
+.box{background:var(--p);border-radius:12px;max-width:760px;width:100%;max-height:92vh;overflow:auto;padding:14px}
+#pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.pc{min-width:0}.pc img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:6px;display:block}
+.pc small{display:block;font-size:11px;margin:3px 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pc .btn{padding:4px 6px;font-size:11px;min-height:30px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--a);color:var(--ac);padding:8px 14px;border-radius:20px;z-index:500000;display:none;font-weight:700;max-width:90%;text-align:center}
+#bye{position:fixed;top:0;right:0;bottom:0;left:0;background:var(--bg);z-index:600000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
+#bye.on{display:flex}
+</style>
+</head>
+<body>
+<main>
+ <section class="view on" id="v-imp">
+  <h2>Importar y gestionar <span class="m" id="cc"></span></h2>
+  <div class="bar"><label class="btn pri">Importar imágenes<input type="file" id="f" accept="image/*" multiple hidden></label><button class="btn" data-a="smode">☑ Seleccionar</button></div>
+  <div class="bar"><select id="si"></select><button class="btn vbtn" data-a="vw"></button></div>
+  <div id="sb1"></div><div id="g1" class="grid"></div>
+ </section>
+
+ <section class="view" id="v-dir">
+  <h2>Directorio</h2>
+  <div class="bar"><input type="text" id="q" placeholder="Buscar carta por nombre"><button class="btn" data-a="smode">☑ Seleccionar</button></div>
+  <div class="bar"><select id="ft"></select><select id="fc"></select><select id="sd"></select><button class="btn vbtn" data-a="vw"></button></div>
+  <div id="sb2"></div><div id="g2" class="grid"></div>
+ </section>
+
+ <section class="view" id="v-decks">
+  <div id="dov">
+   <div class="bar"><h2 style="flex:1;margin:0">Mis Decks</h2><select id="sdk"></select></div>
+   <div id="dl" class="dgrid"></div>
+  </div>
+  <div id="ded"></div>
+ </section>
+
+ <section class="view" id="v-play">
+  <div id="setup"></div>
+  <div id="game">
+   <div id="trv"><div class="hl" id="hlr"></div><div id="tlr" class="tl"></div></div>
+   <div id="mat"><svg id="ar" aria-hidden="true"></svg><div id="cl"></div><div id="hud"></div><button id="hb" data-a="gmenu" aria-label="Menú">☰</button><div id="gm" hidden></div><div id="tb" hidden></div><div class="cn" id="cnm" hidden></div><div class="cn" id="cnr" hidden></div></div>
+   <div id="tray"><div class="hl" id="hlm"></div><div id="tl" class="tl"></div></div>
+  </div>
+ </section>
+
+ <section class="view" id="v-set">
+  <h2>Ajustes</h2>
+  <div class="set"><label>Cartas de la mano inicial <input type="number" id="hs" min="0" max="20"></label></div>
+  <div class="set"><span>Vista de cartas (Importar y Directorio)</span><button class="btn vbtn" data-a="vw"></button></div>
+  <div class="set"><label><input type="checkbox" id="auto"> Ajuste automático del tamaño de carta</label></div>
+  <div class="set"><label>Tamaño manual <input type="range" id="cw" min="45" max="150"></label><div class="cwp" id="cwp"><div class="cwv"><div class="cwc" id="cwc"></div></div><small class="m" id="cwl"></small></div></div>
+  <div class="set"><span>Tema</span><div class="bar" style="margin:0"><button class="btn" data-a="th" data-i="dark">Oscuro</button><button class="btn" data-a="th" data-i="light">Claro</button></div></div>
+  <div class="set"><label>Color del tapete <input type="color" id="mc"></label></div>
+  <div class="set" style="display:block"><div class="bar" style="margin:0 0 8px"><b style="flex:1">Tableros personalizados</b><button class="btn pri" data-a="bnew">Crear Tablero</button></div><div class="m" style="font-size:12px;margin-bottom:6px">Parte de un tapete libre: dibuja zonas, ponles nombre, gíralas, ajústalas al tamaño de carta o activa la simetría para el lado del rival. Al crear una partida podrás elegirlas.</div><div id="bl"></div></div>
+  <div class="set"><span>Las cartas de la mesa vuelven a sus mazos</span><button class="btn" data-a="gclr">Limpiar tablero</button></div>
+  <div class="set"><span>Baraja y reparte de nuevo la partida actual</span><button class="btn pri" data-a="grs">Reiniciar partida</button></div>
+  <div class="set"><span>Borrar cartas, decks y partida guardados</span><button class="btn dng" data-a="wipe">Borrar todo</button></div>
+ </section>
+</main>
+
+<button class="fab" id="fab" data-a="dnew" aria-label="Nuevo deck">+</button>
+
+<nav>
+ <button data-v="imp" class="on"><b>🗂</b>Importar</button>
+ <button data-v="dir"><b>🔎</b>Directorio</button>
+ <button data-v="decks"><b>📚</b>Decks</button>
+ <button data-v="play"><b>🎴</b>Juego</button>
+ <button data-v="set"><b>⚙</b>Ajustes</button>
+ <button data-a="exit"><b>🚪</b>Salir</button>
+</nav>
+
+<div id="hm" hidden></div><div id="be"></div><div id="md"></div><div id="toast"></div>
+<div id="bye">
+ <h2>Sesión cerrada</h2>
+ <p class="m">Tus cartas y mazos siguen guardados en este navegador.<br>Ya puedes cerrar esta pestaña.</p>
+ <div class="bar"><button class="btn pri" data-a="back">Volver</button><button class="btn" data-a="reload">Recargar</button></div>
+</div>
+
+<script>
+addEventListener('error',e=>{try{toast('Error: '+e.message)}catch(_){alert('Error: '+e.message)}});
+addEventListener('unhandledrejection',e=>{try{toast('Error: '+(e.reason&&e.reason.message||e.reason))}catch(_){}});
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const fresh=()=>({cards:[],decks:[],ui:{tcg:'',gd:'',gd2:'',gm:1,si:'az',sd:'az',sk:'az',se:'az',lpOn:true,lp:8000,cnOn:false,cn:0,bm:'free',bd:'',dice:true,phv:2,ph:['Draw Phase','Main Phase','Battle Phase','End Phase']},set:{auto:true,cw:80,theme:'dark',mat:'#0c1f3d',hand:5,view:'grid',hudMode:innerWidth<900?'bar':'list',hudPos:null,hudScale:1},game:null,top:1,boards:[]});
+let S=fresh(),view='imp',drag=null,ghost=null,tb=null,pend=[],pv=null,ED=null,chg=null,playing=false,selMode=false,CLIP=null,VIS=[],lastTap={id:'',t:0},st,tt;
+const SEL=new Set();
+let atk=null,BE=null,BD=null;const FX={},SNAP={};
+let menuT=0,lastPT='mouse';
+const card=id=>S.cards.find(c=>c.id===id),dk=id=>S.decks.find(d=>d.id===id);
+const pile=id=>S.game.piles.find(p=>p.id===id),brd=u=>S.game.board.find(c=>c.u===u);
+const hnd=u=>S.game.hand.me.find(h=>h.u===u)||S.game.hand.rv.find(h=>h.u===u);
+const rmHand=h=>{S.game.hand[h.o]=S.game.hand[h.o].filter(x=>x!==h)};
+const home=(o,p)=>(p&&pile(p))||S.game.piles.find(x=>x.o===o);
+const uniq=l=>[...new Set(l)].sort((a,b)=>a.localeCompare(b,'es'));
+const tcgs=()=>uniq([...S.cards.map(c=>c.tcg),...S.decks.map(d=>d.tcg)]);
+const cats=()=>uniq(S.cards.map(c=>c.cat));
+const allCats=()=>uniq([...cats(),'Monstruo','Hechizo','Trampa','Recurso']);
+const norm=(v,l)=>{v=v.trim();return l.find(x=>x.toLowerCase()===v.toLowerCase())||v};
+const dlist=(id,l)=>`<datalist id="${id}">${l.map(t=>`<option value="${esc(t)}">`).join('')}</datalist>`;
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',2200)}
+
+/* ---------- almacenamiento local (localStorage) ---------- */
+const LS=(()=>{try{localStorage.setItem('_t','1');localStorage.removeItem('_t');return localStorage}catch(_){return null}})();
+const KM='tcg2:meta',KI='tcg2:img:',KT='tcg2:thumb:';
+const put=(k,v)=>{if(!LS)return false;try{LS.setItem(k,v);return true}catch(_){return false}};
+const del=k=>{if(LS)try{LS.removeItem(k)}catch(_){}};
+function flush(){
+ const m={cards:S.cards.map(c=>({id:c.id,name:c.name,tcg:c.tcg,cat:c.cat})),decks:S.decks.map(d=>{const o=Object.assign({},d);delete o.thumbSrc;return o}),set:S.set,ui:S.ui,game:S.game,top:S.top,boards:S.boards};
+ if(!put(KM,JSON.stringify(m)))toast('No se pudo guardar: almacenamiento lleno o bloqueado');
+}
+function save(){clearTimeout(st);st=setTimeout(flush,200)}
+addEventListener('pagehide',flush);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flush()});
+function load(){
+ try{
+  const m=JSON.parse((LS&&LS.getItem(KM))||'null');if(!m)return;
+  const cards=(m.cards||[]).map(c=>Object.assign({},c,{src:LS.getItem(KI+c.id)})).filter(c=>c.src);
+  S=Object.assign(fresh(),m,{cards});
+  S.boards=(Array.isArray(m.boards)?m.boards:[]).filter(b=>b&&Array.isArray(b.zones));S.set=Object.assign(fresh().set,m.set);if(S.set.mat==='#17402f')S.set.mat=fresh().set.mat;S.ui=Object.assign(fresh().ui,m.ui);
+  const ph0=m.ui&&m.ui.ph;
+  if(!Array.isArray(ph0)||!ph0.length)S.ui.ph=['Draw Phase','Main Phase','Battle Phase','End Phase'];
+  else if(m.ui.phv!==2)S.ui.ph=['Draw Phase',...ph0,'End Phase'];
+  S.ui.phv=2;
+  S.cards.forEach(c=>{c.cat=c.cat||'Sin categoría'});
+  S.decks=(S.decks||[]).filter(d=>d&&d.subs);
+  S.decks.forEach(d=>{d.subs.forEach(s=>s.list=s.list.filter(id=>card(id)));if(d.thumb&&d.thumb.t==='img'){d.thumbSrc=LS.getItem(KT+d.id)||'';if(!d.thumbSrc)d.thumb=null}});
+  const G=S.game;
+  if(G&&G.piles&&G.hand&&!Array.isArray(G.hand)&&G.cfg&&G.mode){
+   G.piles=G.piles.filter(p=>p.o);G.piles.forEach(p=>p.cards=p.cards.filter(id=>card(id)));
+   ['me','rv'].forEach(o=>G.hand[o]=(G.hand[o]||[]).filter(h=>card(h.cid)));
+   G.board=(G.board||[]).filter(c=>card(c.cid));G.arrows=(G.arrows||[]).filter(a=>G.board.some(c=>c.u===a.a)&&G.board.some(c=>c.u===a.b));
+   G.phases=G.phases||['Draw Phase','Main Phase','Battle Phase','End Phase'];G.turn=G.turn||1;G.phase=Math.min(G.phase||0,G.phases.length-1);
+   if(G.lp===undefined)G.lp=null;if(G.cnt===undefined)G.cnt=null;G.zones=Array.isArray(G.zones)?G.zones:null;G.cn0=G.cn0||0;G.lp0=G.lp0||8000;G.lpStep=G.lpStep||[100,1000];G.first=G.first||'me';
+  }else S.game=null;
+ }catch(_){}
+}
+
+/* ---------- orden, galería y selección ---------- */
+const SO={az:'Orden: Nombre A-Z',za:'Orden: Nombre Z-A',tcg:'Orden: TCG',cat:'Orden: Categoría'};
+const cmpN=(a,b)=>a.name.localeCompare(b.name,'es',{sensitivity:'base'});
+const sortC=(l,m)=>l.slice().sort(m==='za'?(a,b)=>cmpN(b,a):m==='tcg'?(a,b)=>a.tcg.localeCompare(b.tcg,'es')||cmpN(a,b):m==='cat'?(a,b)=>(a.cat||'').localeCompare(b.cat||'','es')||cmpN(a,b):cmpN);
+const fillS=(sel,keys,cur)=>{$(sel).innerHTML=keys.map(k=>`<option value="${k}" ${k===cur?'selected':''}>${SO[k]}</option>`).join('')};
+const gal=l=>l.map(c=>{
+ const cls=(SEL.has(c.id)?' sel':'')+(CLIP&&CLIP.mode==='cut'&&CLIP.ids.includes(c.id)?' cut':''),ck=selMode?'<i class="ck">✓</i>':'';
+ return S.set.view==='list'
+  ?`<div class="lr${cls}" data-a="det" data-i="${c.id}">${ck}<img src="${c.src}"><div><b>${esc(c.name)}</b><small>${esc(c.tcg)} · ${esc(c.cat)}</small></div></div>`
+  :`<div class="th${cls}" data-a="det" data-i="${c.id}">${ck}<img src="${c.src}"><small>${esc(c.name)}</small><em>${esc(c.tcg)} · ${esc(c.cat)}</em></div>`}).join('');
+const vb=()=>$$('.vbtn').forEach(b=>b.textContent=S.set.view==='list'?'▦ Ver en cuadrícula':'☰ Ver en lista');
+const selBar=()=>selMode?`<div class="selbar"><b>${SEL.size} sel.</b><button class="btn" data-a="sall">Todo</button><button class="btn" data-a="scopy">Copiar</button><button class="btn" data-a="scut">Cortar</button><button class="btn" data-a="spaste">Pegar${CLIP?' ('+CLIP.ids.length+')':''}</button><button class="btn dng" data-a="sdel">Borrar</button><button class="btn pri" data-a="sdone">Listo</button></div>`:'';
+const refresh=()=>view==='imp'?rImp():rDir();
+
+/* ---------- navegación ---------- */
+function show(v){
+ const prev=view;
+ if(v!==prev){selMode=false;SEL.clear()}
+ if(v==='play'&&prev!=='play')playing=false;
+ view=v;hideTb();hideHm();hideGm();
+ if(v!=='play')document.body.classList.remove('inplay');
+ $$('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
+ $$('nav [data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+ ({imp:rImp,dir:rDir,decks:rDecks,play:rGame,set:rSet})[v]();
+ $('#fab').style.display=(v==='decks'&&!ED)?'flex':'none';
+}
+function rImp(){
+ $('#cc').textContent='('+S.cards.length+')';fillS('#si',['az','za','tcg','cat'],S.ui.si);vb();
+ const l=sortC(S.cards,S.ui.si);VIS=l.map(c=>c.id);
+ $('#sb1').innerHTML=selBar();$('#g1').className=S.set.view==='list'?'list':'grid';
+ $('#g1').innerHTML=gal(l)||'<p class="m">Aún no hay cartas. Importa imágenes para empezar.</p>';
+}
+function rDir(){
+ const t=$('#ft').value,c=$('#fc').value,q=$('#q').value.trim().toLowerCase();
+ $('#ft').innerHTML='<option value="">Todos los TCG</option>'+tcgs().map(x=>`<option>${esc(x)}</option>`).join('');$('#ft').value=t;
+ $('#fc').innerHTML='<option value="">Todas las categorías</option>'+cats().map(x=>`<option>${esc(x)}</option>`).join('');$('#fc').value=c;
+ fillS('#sd',['az','za','tcg','cat'],S.ui.sd);vb();
+ const l=sortC(S.cards.filter(x=>(!$('#ft').value||x.tcg===$('#ft').value)&&(!$('#fc').value||x.cat===$('#fc').value)&&x.name.toLowerCase().includes(q)),S.ui.sd);
+ VIS=l.map(x=>x.id);
+ $('#sb2').innerHTML=selBar();$('#g2').className=S.set.view==='list'?'list':'grid';
+ $('#g2').innerHTML=gal(l)||'<p class="m">Ninguna carta coincide con la búsqueda.</p>';
+}
+
+/* ---------- modales: importar, vista previa, pegar ---------- */
+const setM=h=>{$('#md').innerHTML=`<div class="box">${h}</div>`;$('#md').classList.add('on')};
+const closeM=()=>{$('#md').classList.remove('on');$('#md').innerHTML='';pv=null;pend=[];chg=null};
+function impM(){
+ setM(`<h3>Datos de las cartas (${pend.length})</h3>
+ <div class="bar"><input type="text" id="bt" list="tl" placeholder="TCG para todas"><input type="text" id="bc" list="dlc" placeholder="Categoría para todas"><button class="btn" data-a="ball">Aplicar a todas</button></div>
+ ${pend.map((p,i)=>`<div class="row ir ${p.bad?'bad':''}"><img src="${p.src}"><div style="flex:1;display:grid;gap:4px;min-width:0"><input type="text" data-k="${i}" data-f="name" placeholder="Nombre de la carta *" value="${esc(p.name)}"><input type="text" list="tl" data-k="${i}" data-f="tcg" placeholder="Nombre del TCG *" value="${esc(p.tcg)}"><input type="text" list="dlc" data-k="${i}" data-f="cat" placeholder="Categoría (Monstruo, Hechizo…)" value="${esc(p.cat)}"></div></div>`).join('')}
+ ${dlist('tl',tcgs())}${dlist('dlc',allCats())}<div class="bar"><button class="btn pri" data-a="isave">Guardar todas</button><button class="btn" data-a="icancel">Cancelar</button></div>`);
+}
+function zoomM(id,ro){
+ const c=card(id);if(!c)return;
+ const nd=S.decks.filter(d=>d.subs.some(s=>s.list.includes(id))).length;
+ setM(`<div style="text-align:center"><img src="${c.src}" style="max-height:58vh;max-width:100%;border-radius:10px"></div>
+ <h3 style="margin-top:10px">${esc(c.name)}</h3>
+ <div class="kv"><span>TCG</span><b>${esc(c.tcg)}</b></div><div class="kv"><span>Categoría</span><b>${esc(c.cat)}</b></div><div class="kv"><span>Presente en decks</span><b>${nd}</b></div>
+ <div class="bar" style="margin-top:10px">${ro?'':`<button class="btn" data-a="dedit" data-i="${id}">Editar</button><button class="btn dng" data-a="delc" data-i="${id}">Borrar</button>`}<button class="btn pri" data-a="mc">Cerrar</button></div>`);
+}
+function detM(id){
+ const c=card(id);
+ setM(`<div style="text-align:center"><img src="${c.src}" style="max-height:34vh;max-width:100%;border-radius:8px"></div>
+ <div class="bar" style="margin-top:10px"><input type="text" id="dnm" value="${esc(c.name)}" placeholder="Nombre"><input type="text" id="dtc" list="tl" value="${esc(c.tcg)}" placeholder="TCG"><input type="text" id="dct" list="dlc" value="${esc(c.cat)}" placeholder="Categoría"></div>${dlist('tl',tcgs())}${dlist('dlc',allCats())}
+ <div class="bar"><button class="btn pri" data-a="dsave" data-i="${id}">Guardar</button><button class="btn" data-a="zoomc" data-i="${id}">Cancelar</button></div>`);
+}
+function pasteM(){
+ const n=CLIP.ids.filter(card).length,t=view==='dir'&&$('#ft').value||'';
+ setM(`<h3>Pegar ${n} carta(s)</h3><div class="m" style="margin-bottom:8px">${CLIP.mode==='copy'?'Se crearán copias nuevas.':'Se moverán las cartas originales.'} Deja vacío un campo para conservar el valor original.</div>
+ <div class="bar"><input type="text" id="ptc" list="tl" placeholder="TCG de destino" value="${esc(t)}"><input type="text" id="pct" list="dlc" placeholder="Categoría de destino"></div>${dlist('tl',tcgs())}${dlist('dlc',allCats())}
+ <div class="bar"><button class="btn pri" data-a="pdo">Pegar</button><button class="btn" data-a="mc">Cancelar</button></div>`);
+}
+async function toJpg(f,mh=480,q=.78){
+ let b,u=null;
+ try{b=await createImageBitmap(f)}catch(_){
+  const ld=s=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=s});
+  try{u=URL.createObjectURL(f);b=await ld(u)}catch(_2){b=await ld(await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)}))}
+ }
+ const w=b.width||b.naturalWidth,h=b.height||b.naturalHeight,k=Math.min(1,mh/h),c=document.createElement('canvas');
+ c.width=Math.round(w*k);c.height=Math.round(h*k);c.getContext('2d').drawImage(b,0,0,c.width,c.height);
+ if(u)URL.revokeObjectURL(u);
+ return c.toDataURL('image/jpeg',q);
+}
+$('#f').onchange=async e=>{
+ const fs=[...e.target.files],l=[];let bad=0;e.target.value='';
+ for(const f of fs){try{l.push({src:await toJpg(f),name:f.name.replace(/\.[^.]+$/,''),tcg:S.ui.tcg||'',cat:''})}catch(_){bad++}}
+ if(bad)toast('No se pudieron leer '+bad+' archivo(s)');
+ if(l.length){pend=l;impM()}
+};
+const delCard=id=>{
+ S.cards=S.cards.filter(c=>c.id!==id);del(KI+id);
+ S.decks.forEach(d=>d.subs.forEach(s=>s.list=s.list.filter(c=>c!==id)));
+ const G=S.game;if(G){G.piles.forEach(p=>p.cards=p.cards.filter(c=>c!==id));['me','rv'].forEach(o=>G.hand[o]=G.hand[o].filter(h=>h.cid!==id));G.board=G.board.filter(c=>c.cid!==id)}
+};
+
+/* ---------- decks: vista general y editor ---------- */
+const sumD=d=>d.subs.reduce((n,s)=>n+s.list.length,0);
+const curSub=()=>ED.d.subs.find(s=>s.id===ED.sub)||ED.d.subs[0];
+function dThumb(d){
+ const t=d.thumb;
+ if(t&&t.t==='card'&&card(t.id))return card(t.id).src;
+ if(t&&t.t==='img'&&d.thumbSrc)return d.thumbSrc;
+ const c0=d.subs.map(s=>s.list[0]).find(Boolean);return c0&&card(c0)?card(c0).src:null;
+}
+function rDecks(){
+ $('#dov').style.display=ED?'none':'block';$('#ded').style.display=ED?'flex':'none';
+ $('#fab').style.display=(view==='decks'&&!ED)?'flex':'none';
+ ED?rEd():rOv();
+}
+function rOv(){
+ fillS('#sdk',['az','za','tcg'],S.ui.sk);
+ $('#dl').innerHTML=sortC(S.decks,S.ui.sk).map(d=>{
+  const th=dThumb(d);
+  return `<div class="dc" data-a="edit" data-i="${d.id}">${th?`<img src="${th}">`:'<div class="ph">🎴</div>'}<div class="di"><b>${esc(d.name)}</b><small>${esc(d.tcg)}</small><small>${sumD(d)} cartas · ${d.subs.map(s=>esc(s.name)+' '+s.list.length).join(' · ')}</small></div><button class="btn dng" data-a="ddel" data-i="${d.id}" aria-label="Borrar deck">🗑</button></div>`;
+ }).join('')||'<div class="empty"><b>No tienes Decks guardados</b><span class="m">Toca el botón + para crear tu primer Deck.</span></div>';
+}
+function openEd(d,isNew){ED={d:JSON.parse(JSON.stringify(d)),isNew,sub:d.subs[0].id};ED.orig=JSON.stringify(ED.d);rDecks()}
+const dirty=()=>JSON.stringify(ED.d)!==ED.orig;
+function rEd(){
+ const d=ED.d,T=uniq([d.tcg,...tcgs()]),locked=sumD(d)>0,th=dThumb(d);
+ $('#ded').innerHTML=`<div class="bar" style="flex:none"><button class="btn pri" data-a="esave">Guardar</button><button class="btn" data-a="eexit">Salir</button><span class="m">${ED.isNew?'Nuevo deck':'Editando deck'}</span></div>
+ <div class="bar" style="flex:none">${th?`<img class="eth" data-a="thm" src="${th}" title="Miniatura">`:'<div class="eth" data-a="thm" title="Miniatura">🎴</div>'}<input type="text" id="en" placeholder="Nombre del deck" value="${esc(d.name)}"><select id="etcg" ${locked?'disabled':''}>${T.map(t=>`<option ${t===d.tcg?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+ ${locked?'<div class="m" style="font-size:12px;margin-bottom:6px;flex:none">El TCG no se puede cambiar mientras el deck tenga cartas. Toca la miniatura para cambiarla.</div>':''}
+ <div class="bar" id="esb" style="flex:none"></div><div class="m" id="etot" style="margin-bottom:6px;flex:none"></div>
+ <div class="blk up"><div class="bar"><h3 style="margin:0;flex:1;min-width:90px">Cartas de ${esc(d.tcg)}</h3><input type="text" id="aq" placeholder="Buscar…" value="${esc(ED.q||'')}" style="max-width:150px"><select id="se"></select></div><div class="sc"><div id="avail" class="grid"></div></div></div>
+ <div class="blk dn"><div class="bar"><h3 style="margin:0;flex:1">En el sub-deck</h3><span class="m" id="ecnt"></span></div><div class="sc"><div id="inDeck" class="dkg"></div></div></div>`;
+ rEdP();
+}
+function rEdA(){
+ const d=ED.d,sb=curSub(),q=(ED.q||'').trim().toLowerCase(),n=new Map();
+ sb.list.forEach(c=>n.set(c,(n.get(c)||0)+1));
+ $('#avail').innerHTML=sortC(S.cards.filter(c=>c.tcg===d.tcg&&c.name.toLowerCase().includes(q)),S.ui.se).map(c=>`<div class="th" data-a="add" data-i="${c.id}"><img src="${c.src}"><small>${esc(c.name)}</small>${n.has(c.id)?`<i class="bd">${n.get(c.id)}</i>`:''}</div>`).join('')||`<p class="m">${S.cards.some(c=>c.tcg===d.tcg)?'Ninguna carta coincide con la búsqueda.':'No hay cartas de este TCG.'}</p>`;
+}
+function rEdP(){
+ const d=ED.d,sb=curSub();ED.sub=sb.id;
+ $('#esb').innerHTML=d.subs.map(s=>`<button class="chip ${s.id===sb.id?'on':''}" data-a="esub" data-i="${s.id}">${esc(s.name)}<b>${s.list.length}</b></button>`).join('')+'<button class="btn" data-a="enews">+ Sub-deck</button><button class="btn" data-a="erens">Renombrar</button><button class="btn dng" data-a="edels">Borrar</button>';
+ $('#etot').textContent=`Total: ${sumD(d)} cartas · ${sb.name}: ${sb.list.length}`;
+ fillS('#se',['az','za','cat'],S.ui.se);
+ rEdA();
+ const g=new Map();sb.list.forEach(c=>g.set(c,(g.get(c)||0)+1));
+ $('#ecnt').textContent=sb.list.length+' cartas';
+ $('#inDeck').innerHTML=[...g].map(([c,k])=>`<div class="dk"><button data-a="rm" data-i="${c}" aria-label="Quitar una copia">−</button><div class="dkc"><img src="${card(c).src}"><b>×${k}</b><small>${esc(card(c).name)}</small></div><button class="pl" data-a="add" data-i="${c}" aria-label="Añadir una copia">+</button></div>`).join('')||'<p class="m">Toca una carta de arriba para añadirla.</p>';
+}
+const thGrid=q=>{q=(q||'').toLowerCase();return sortC(S.cards.filter(c=>c.name.toLowerCase().includes(q)),'az').map(c=>`<div class="th" data-a="tpick" data-i="${c.id}"><img src="${c.src}"><small>${esc(c.name)}</small></div>`).join('')||'<p class="m">Sin cartas.</p>'};
+
+/* ---------- partida ---------- */
+const subsHtml=d=>d?d.subs.filter(s=>s.list.length).map(s=>`<label><input type="checkbox" value="${s.id}" checked> ${esc(s.name)} (${s.list.length})</label>`).join(''):'';
+function buildPlayer(o,deckId,ids){
+ const d=dk(deckId);if(!d)return null;
+ const ps=d.subs.filter(s=>ids.includes(s.id)&&s.list.length);if(!ps.length)return null;
+ const est=innerWidth>=900?100:innerWidth/8,step=Math.min(.17,est*1.35/innerWidth);
+ return ps.map((s,i)=>({id:o+':'+s.id,o,name:s.name,cards:shuffle(s.list.slice()),x:o==='me'?Math.max(.06,.92-step*i):Math.min(.94,.08+step*i),y:o==='me'?.82:.18,t:++S.top}));
+}
+function loadPlayer(o,deckId,ids){
+ const ps=buildPlayer(o,deckId,ids);
+ if(!ps){toast('Ese deck no tiene cartas en los sub-decks elegidos');return false}
+ const G=S.game;G.piles=G.piles.filter(p=>p.o!==o).concat(ps);G.hand[o]=[];G.board=G.board.filter(c=>c.o!==o);G.cfg[o]={deck:deckId,subs:ids};
+ draw(ps[0].id,S.set.hand);return true;
+}
+function newGame(mode,cfg){
+ const old=S.game;
+ S.game={mode,cfg:{me:cfg.me,rv:cfg.rv||null},piles:[],hand:{me:[],rv:[]},board:[],arrows:[],zones:cfg.zones||null,zname:cfg.zname||'',hideRv:false,
+  phases:cleanPh(S.ui.ph),turn:1,phase:0,first:'me',
+  lp:S.ui.lpOn?{me:S.ui.lp,rv:S.ui.lp}:null,lp0:S.ui.lp,cnt:S.ui.cnOn?{me:S.ui.cn,rv:S.ui.cn}:null,cn0:S.ui.cn,lpStep:S.ui.lp>=1000?[100,1000]:[1,5]};
+ if(!loadPlayer('me',cfg.me.deck,cfg.me.subs)||(mode===2&&!loadPlayer('rv',cfg.rv.deck,cfg.rv.subs))){S.game=old;return false}
+ playing=true;save();rGame();return true;
+}
+function restart(w){
+ const G=S.game;if(!G)return;
+ for(const o of(w==='both'?['me','rv']:[w])){if(!G.cfg[o])continue;if(!loadPlayer(o,G.cfg[o].deck,G.cfg[o].subs))return;if(G.lp)G.lp[o]=G.lp0;if(G.cnt)G.cnt[o]=G.cn0}
+ if(w==='both'||G.mode===1){G.turn=1;G.phase=0}
+ closeM();hideGm();hideTb();save();rGame();toast('Partida reiniciada');
+ if(w==='both'&&G.mode===2&&S.ui.dice)diceM();
+}
+function askRestart(){
+ const G=S.game;if(!G){toast('No hay partida en curso');return}
+ if(G.mode===2)setM('<h3>Reiniciar partida</h3><div class="bar"><button class="btn pri" data-a="rs" data-i="both">Ambos mazos</button><button class="btn" data-a="rs" data-i="me">Solo mi mazo</button><button class="btn" data-a="rs" data-i="rv">Solo el rival</button><button class="btn" data-a="mc">Cancelar</button></div>');
+ else if(confirm('¿Reiniciar la partida?'))restart('me');
+}
+function draw(pid,n=1){const P=pile(pid);for(let i=0;i<n&&P.cards.length;i++)S.game.hand[P.o].push({u:uid(),cid:P.cards.pop(),p:P.id,o:P.o});if(!P.cards.length)toast('El mazo está vacío')}
+function clearTable(){const G=S.game;G.board.forEach(c=>home(c.o,c.p).cards.push(c.cid));G.board=[]}
+function tabHtml(){
+ const z=S.ui.bm==='zones',bd=S.boards.find(b=>b.id===S.ui.bd)||S.boards[0];if(bd)S.ui.bd=bd.id;
+ return `<div class="set" style="display:block"><b>Tablero</b><div class="bar" style="margin:8px 0 0"><button class="chip ${!z?'on':''}" data-a="bmode" data-i="free">Tablero Libre</button><button class="chip ${z?'on':''}" data-a="bmode" data-i="zones">Tablero con Zonas</button></div>`
+ +(z?(S.boards.length?`<div class="bar"><select id="bsel">${S.boards.map(b=>`<option value="${b.id}" ${bd&&b.id===bd.id?'selected':''}>${esc(b.name)}${b.tcg?' · '+esc(b.tcg):''} (${b.zones.length} zonas)</option>`).join('')}</select></div><div class="m" style="font-size:12px">Al soltar una carta sobre una zona se imanta al centro y toma su orientación si la zona está girada; puedes moverla cuando quieras.</div>`:'<div class="m" style="margin-top:6px">Aún no tienes tableros. Créalos en Ajustes → Crear Tablero.</div>'):'<div class="m" style="font-size:12px;margin-top:6px">Tapete libre, sin zonas fijas.</div>')+'</div>';
+}
+function rSetup(){
+ const ds=S.decks.filter(d=>d.subs.some(s=>s.list.length));
+ if(!ds.length){$('#setup').innerHTML='<h2>Zona de juego</h2><p class="m">Crea un deck con cartas en la pestaña Decks para poder jugar.</p>';return}
+ const d1=ds.find(x=>x.id===S.ui.gd)||ds[0],d2=ds.find(x=>x.id===S.ui.gd2)||ds[0];S.ui.gd=d1.id;S.ui.gd2=d2.id;
+ const two=S.ui.gm===2,opt=s=>ds.map(x=>`<option value="${x.id}" ${x.id===s.id?'selected':''}>${esc(x.tcg)} · ${esc(x.name)}</option>`).join('');
+ $('#setup').innerHTML=`<h2>Zona de juego</h2>
+ ${S.game?`<div class="set"><span>Hay una partida en curso (${S.game.mode===2?'2 decks':'1 deck'})</span><button class="btn pri" data-a="cont">Continuar partida</button></div>`:''}
+ <div class="bar"><button class="chip ${!two?'on':''}" data-a="gmode" data-i="1">Jugar con 1 Deck</button><button class="chip ${two?'on':''}" data-a="gmode" data-i="2">Jugar con 2 Decks (vs Rival)</button></div>
+ <div class="set"><label>${two?'Tu deck':'Deck'} <select id="gd1">${opt(d1)}</select></label></div><div class="set" id="gs1">${subsHtml(d1)}</div>
+ ${two?`<div class="set"><label>Deck del Rival <select id="gd2">${opt(d2)}</select></label></div><div class="set" id="gs2">${subsHtml(d2)}</div>`:''}
+ ${two?`<div class="set"><label><input type="checkbox" id="dice" ${S.ui.dice?'checked':''}> Tirar dados (1-6) al empezar para ver quién empieza</label></div>`:''}
+ ${tabHtml()}
+ ${phHtml()}
+ <div class="set"><span>Mano inicial: ${S.set.hand} cartas (se cambia en Ajustes)</span><button class="btn pri" data-a="go">Iniciar partida</button></div>`;
+ rPh();
+}
+function rGame(){
+ const G=S.game,on=!!(playing&&G);
+ document.body.classList.toggle('inplay',on);
+ $('#setup').classList.toggle('off',on);$('#game').classList.toggle('on',on);
+ if(!on){atk=null;rSetup();return}
+ $('#setup').innerHTML='';
+ const two=G.mode===2;
+ $('#trv').style.display=two?'block':'none';
+ const hh=(o,hide)=>G.hand[o].map(h=>`<div class="tc" data-u="${h.u}">${hide?'<div class="back"></div>':`<img src="${card(h.cid).src}">`}</div>`).join('')||'<span class="m">Sin cartas.</span>';
+ $('#tl').innerHTML=hh('me',false);
+ if(two)$('#tlr').innerHTML=hh('rv',G.hideRv);
+ rBars();
+ const m=$('#mat'),w=m.clientWidth,h=m.clientHeight,wide=innerWidth>=900;
+ m.style.setProperty('--cw',cardW(w,h,two)+'px');
+ place();
+}
+const fk=n=>n>=1000&&n%1000===0?n/1000+'k':n;
+function rBars(){
+ const G=S.game;if(!G)return;
+ const two=G.mode===2,nb=o=>G.board.filter(c=>c.o===o).length,act=two?activeO():'';
+ const lpb=(o,who)=>{const[s,b]=G.lpStep;return `<span class="lp${act===o?' act':''}"><b class="who">${who}</b><button data-a="lp" data-i="${o}:${-b}">−${fk(b)}</button><button data-a="lp" data-i="${o}:${-s}">−${fk(s)}</button><button class="num ${G.lp[o]===0?'z':''}" data-a="lpe" data-i="${o}">${G.lp[o]}</button><button data-a="lp" data-i="${o}:${s}">+${fk(s)}</button><button data-a="lp" data-i="${o}:${b}">+${fk(b)}</button></span>`};
+ const stat=(o,t)=>`<span class="${G.lp?'st':''}">${t}Mano ${G.hand[o].length} · Mesa ${nb(o)}</span>`;
+ $('#hlm').innerHTML=(G.lp?lpb('me',two?'Tú':'LP'):'')+stat('me',two?'Tú · ':'');
+ if(two)$('#hlr').innerHTML=(G.lp?lpb('rv','Rival'):'')+stat('rv','Rival · ');
+ const mode=S.set.hudMode==='list'?'list':'bar',who=two?`Juega: ${act==='me'?'Tú':'Rival'}`:'';
+ const hud=$('#hud');hud.className=mode;
+ hud.innerHTML=mode==='bar'
+  ?`<span class="hg" title="Arrastra para mover">⠿</span><button class="tn" data-a="hudt" aria-label="Ver todas las fases">T${G.turn} ▾</button><span class="cur"><b>${esc(G.phases[G.phase])}</b>${who?`<small>${who}</small>`:''}</span><button class="nx" data-a="phprev" aria-label="Fase anterior">‹</button><button class="nx go" data-a="phnext" aria-label="Siguiente fase">›</button><button class="zm" data-a="hudz" aria-label="Cambiar tamaño">⤢</button>`
+  :`<div class="hr"><span class="hg" title="Arrastra para mover">⠿</span><button class="zm" data-a="hudz" aria-label="Cambiar tamaño">⤢</button></div><button class="tn" data-a="hudt">Turno ${G.turn} ▴</button>${who?`<div class="tn2">${who}</div>`:''}`
+   +G.phases.map((p,i)=>`<button class="ph ${i===G.phase?'on':''}" data-a="phgo" data-i="${i}">${esc(p)}</button>`).join('')
+   +'<div class="nr"><button class="nx" data-a="phprev" aria-label="Fase anterior">‹</button><button class="nx go" data-a="phnext">Siguiente ›</button></div>';
+ hud.style.setProperty('--hs',S.set.hudScale||1);rCn();
+ hudPos();
+}
+function hudPos(){
+ const h=$('#hud');if(!h||!$('#game').classList.contains('on'))return;
+ const m=$('#mat').getBoundingClientRect(),w=h.offsetWidth,hh=h.offsetHeight,p=S.set.hudPos;
+ const x=p?m.left+p.x:m.left+8,y=p?m.top+p.y:(S.set.hudMode==='list'?m.top+(m.height-hh)/2:m.top+8);
+ h.style.left=Math.max(4,Math.min(innerWidth-w-4,x))+'px';h.style.top=Math.max(4,Math.min(innerHeight-hh-4,y))+'px';
+}
+const cleanPh=l=>{const r=l.map(x=>String(x).trim().slice(0,24)).filter(Boolean);while(r.length<2)r.push(r.length?'End Phase':'Draw Phase');return r};
+const activeO=()=>{const G=S.game,f=G.first||'me';return G.mode!==2?'me':(G.turn%2===1?f:(f==='me'?'rv':'me'))};
+const dieF=n=>String.fromCharCode(0x267F+n);
+function diceM(){
+ const G=S.game,r=()=>1+Math.floor(Math.random()*6);
+ setM(`<h3>Dados: ¿quién empieza?</h3><div class="dice"><div><span>Tú</span><b id="d1">${dieF(1)}</b></div><div><span>Rival</span><b id="d2">${dieF(1)}</b></div></div><div id="dres" class="m" style="text-align:center;min-height:24px">Tirando…</div><div class="bar" style="justify-content:center"><button class="btn pri" id="dbtn" data-a="mc" disabled>Aceptar</button></div>`);
+ let n=0;
+ const t=setInterval(()=>{
+  const e1=$('#d1'),e2=$('#d2');if(!e1||!e2){clearInterval(t);return}
+  if(++n<10){e1.textContent=dieF(r());e2.textContent=dieF(r());return}
+  clearInterval(t);
+  let a,b;do{a=r();b=r()}while(a===b);
+  e1.textContent=dieF(a);e2.textContent=dieF(b);
+  G.first=a>b?'me':'rv';save();
+  $('#dres').innerHTML=`<b style="color:var(--a)">${G.first==='me'?'Empiezas tú':'Empieza el rival'}</b> (Tú ${a} · Rival ${b})`;
+  $('#dbtn').disabled=false;rBars();
+ },100);
+}
+function thM(){
+ const th=dThumb(ED.d);
+ setM(`<h3>Miniatura del deck</h3><div style="text-align:center">${th?`<img src="${th}" style="max-height:40vh;max-width:100%;border-radius:8px">`:'<div class="m">Sin miniatura: se usa la primera carta del deck.</div>'}</div>
+ <div class="bar" style="margin-top:10px;justify-content:center"><button class="btn" data-a="thc">Elegir carta</button><label class="btn">Subir imagen<input type="file" id="tf" accept="image/*" hidden></label><button class="btn" data-a="thx">Quitar</button><button class="btn pri" data-a="mc">Listo</button></div>`);
+}
+function phNext(){const G=S.game;G.phase++;if(G.phase>=G.phases.length){G.phase=0;G.turn++;toast('Turno '+G.turn+(G.mode===2?' · Juega '+(activeO()==='me'?'Tú':'el rival'):''))}save();rBars()}
+function phPrev(){const G=S.game;if(G.phase>0)G.phase--;else if(G.turn>1){G.turn--;G.phase=G.phases.length-1}save();rBars()}
+function lpAdd(o,d){const G=S.game;if(!G||!G.lp)return;G.lp[o]=Math.max(0,G.lp[o]+d);if(!G.lp[o])toast((o==='rv'?'Rival':G.mode===2?'Tú':'Jugador')+' llega a 0 LP');save();rBars()}
+function lpEdit(o){
+ const G=S.game,cur=G.lp[o],v=prompt('Nuevo LP (actual '+cur+'). Escribe un valor, o +500 / -500 para sumar o restar:','');
+ if(v===null)return;
+ const t=v.trim().replace('−','-');
+ if(!/^[+-]?\d+$/.test(t)){toast('Valor no válido');return}
+ G.lp[o]=Math.max(0,/^[+-]/.test(t)?cur+parseInt(t,10):parseInt(t,10));save();rBars();
+}
+function phListHtml(){
+ const m=S.ui.ph;
+ return m.map((n,i)=>`<div class="phr"><b>${i+1}.</b><input type="text" data-ph="${i}" value="${esc(n)}" maxlength="24" placeholder="Nombre de la fase"><button data-a="phup" data-i="${i}" ${i===0?'disabled':''} aria-label="Subir">▲</button><button data-a="phdn" data-i="${i}" ${i===m.length-1?'disabled':''} aria-label="Bajar">▼</button><button data-a="phdel" data-i="${i}" ${m.length<=2?'disabled':''} aria-label="Quitar">✕</button></div>`).join('');
+}
+function rPh(){const e=$('#phl');if(e)e.innerHTML=phListHtml()}
+function phHtml(){
+ return `<div class="set" style="display:block"><b>Fases del turno</b> <span class="m">(toca un nombre para editarlo · mínimo 2 fases)</span><div id="phl"></div>
+ <div class="bar"><input type="text" id="phn" placeholder="Nueva fase (ej. Standby Phase)" maxlength="24"><button class="btn" data-a="phadd">Añadir</button><button class="btn" data-a="phreset">Restablecer</button></div>
+ <div class="bar">${['Standby Phase','Main Phase 1','Battle Phase','Main Phase 2'].map(n=>`<button class="chip" data-a="phpre" data-i="${n}">+ ${n}</button>`).join('')}</div></div>
+ <div class="set" style="display:block"><label><input type="checkbox" id="lpon" ${S.ui.lpOn?'checked':''}> Usar Puntos de Vida (LP)</label>
+ <div class="bar" style="margin:8px 0 0"><input type="number" id="lpn" min="1" max="999999" value="${S.ui.lp}" style="width:110px">${[8000,4000,20].map(n=>`<button class="chip" data-a="lpset" data-i="${n}">${n}</button>`).join('')}<span class="m">o escribe una cantidad</span></div></div>
+ <div class="set" style="display:block"><label><input type="checkbox" id="cnon" ${S.ui.cnOn?'checked':''}> Usar contadores de jugador (esquinas de la mesa)</label><div class="bar" style="margin:8px 0 0"><input type="number" id="cnn" min="-9999" max="99999" value="${S.ui.cn}" style="width:110px"><span class="m">valor inicial (0 por defecto)</span></div></div>`;
+}
+function cfgM(){setM(`<h3>Fases y Puntos de Vida</h3>${phHtml()}<div class="bar"><button class="btn pri" data-a="cfgok">Aplicar</button><button class="btn" data-a="mc">Cancelar</button></div>`);rPh()}
+function place(){
+ const G=S.game,m=$('#mat'),W=m.clientWidth,H=m.clientHeight,cl=$('#cl');cl.innerHTML='';
+ fitZones(W,H);
+ (G.zones||[]).forEach(z=>{const e=document.createElement('div');e.className='zone';e.style.cssText=`left:${z.x*W}px;top:${z.y*H}px;width:${z.w*W}px;height:${z.h*H}px${z.rot?`;transform:rotate(${z.rot}deg)`:''}`;e.innerHTML=`<span>${esc(z.name)}</span>`;cl.append(e)});
+ G.piles.forEach(P=>{
+  const e=document.createElement('div'),n=P.cards.length,sn=SNAP[P.id];delete SNAP[P.id];
+  e.className='pile'+(P.o==='rv'?' rv':'')+(n?'':' e')+(sn?' snap':'');e.dataset.p=P.id;
+  e.style.cssText=`left:${(sn?sn.x:P.x)*W}px;top:${(sn?sn.y:P.y)*H}px;z-index:${P.t}`;
+  e.innerHTML=`<em class="pnm">${esc(P.name)}</em><i class="pbd">${n}</i>`;cl.append(e);
+  if(sn){void e.offsetWidth;e.style.left=P.x*W+'px';e.style.top=P.y*H+'px';setTimeout(()=>e.classList.remove('snap'),260)}
+ });
+ G.board=G.board.filter(c=>card(c.cid));
+ G.arrows=(G.arrows||[]).filter(a=>brd(a.a)&&brd(a.b));if(atk&&!brd(atk.u))atk=null;
+ const now=Date.now();
+ G.board.slice().sort((a,b)=>a.t-b.t).forEach(c=>{
+  const fx=FX[c.u]&&now-FX[c.u]<1000,sn=SNAP[c.u];delete SNAP[c.u];
+  const e=document.createElement('div');e.className='bc'+(c.down?' dn':'')+(c.o==='rv'?' rv':'')+(c.sel?' sel':'')+(atk&&atk.u===c.u?' atk':'')+(fx?' fx':'')+(sn?' snap':'');e.dataset.u=c.u;
+  e.style.cssText=`left:${(sn?sn.x:c.x)*W}px;top:${(sn?sn.y:c.y)*H}px;z-index:${c.t};transform:translate(-50%,-50%) rotate(${sn&&sn.r!=null?sn.r:c.r}deg)`;
+  if(fx)e.style.animationDelay='-'+((now-FX[c.u])/1000)+'s';
+  if(!c.down)e.innerHTML=`<img src="${card(c.cid).src}">`;
+  if(c.mk)e.insertAdjacentHTML('beforeend',mkHtml(c.mk));
+  cl.append(e);
+  if(sn){void e.offsetWidth;e.style.left=c.x*W+'px';e.style.top=c.y*H+'px';e.style.transform=`translate(-50%,-50%) rotate(${c.r}deg)`;setTimeout(()=>e.classList.remove('snap'),260)}
+ });
+ drawArrows();
+ if(tb)showTb(tb.k,tb.id,tb.more);
+}
+function showTb(k,id,more){
+ const e=$(k==='pile'?`.pile[data-p="${id}"]`:`.bc[data-u="${id}"]`),t=$('#tb');
+ if(!e){hideTb();return}
+ const cc=k==='card'?brd(id):null,hasA=!!(cc&&((atk&&atk.u===id)||(S.game.arrows||[]).some(a=>a.a===id)));
+ tb={k,id,more:!!more};t.className=(k==='pile'||more)?'v':'';
+ t.innerHTML=k==='pile'
+  ?(more?'<button data-a="ptv">Ver el Top del Mazo</button><button data-a="pbv">Ver el Fondo del Mazo</button><button data-a="ptd">Jugar Top boca abajo</button><button data-a="pback">← Volver</button>'
+   :'<button data-a="pdraw">Robar</button><button data-a="pshuf2">Barajar</button><button data-a="psearch">Buscar</button><button data-a="preveal">Revelar el Top</button><button data-a="pmore">Más…</button><button data-a="x">Cerrar</button>')
+  :(more?'<button data-a="zoom">Ampliar carta</button><button data-a="mkm">● Contadores / Marcas</button><button data-a="toh">Mano</button><button data-a="ret">Mazo</button><button data-a="cbot">Enviar al fondo del Deck</button><button data-a="cback">← Volver</button>'
+   :`<button data-a="atk">${hasA?'✖ Cancelar flecha':'⚔ Atacar / Flecha'}</button><button data-a="fx">⚡ Activar Efecto</button><button data-a="csel">${cc&&cc.sel?'☐ Deseleccionar':'☑ Seleccionar'}</button><button data-a="rot">Rotar</button><button data-a="flip">Voltear</button><button data-a="cmore">Más…</button><button data-a="x">✕</button>`);
+ t.hidden=false;
+ const m=$('#mat').getBoundingClientRect(),r=e.getBoundingClientRect(),h=t.offsetHeight,w=t.offsetWidth;
+ let x=r.left-m.left+r.width/2,y=r.top-m.top-h-6;
+ if(y<4){
+  y=r.bottom-m.top+6;
+  if(y+h>m.height-4){
+   y=Math.max(4,Math.min(r.top-m.top+r.height/2-h/2,m.height-h-4));
+   const rt=r.right-m.left+6+w/2,lf=r.left-m.left-6-w/2;
+   x=rt+w/2<=m.width-4?rt:lf;
+  }
+ }
+ t.style.left=Math.max(w/2+4,Math.min(m.width-w/2-4,x))+'px';t.style.top=y+'px';
+}
+function hideTb(){tb=null;$('#tb').hidden=true}
+function hideGm(){$('#gm').hidden=true}
+function hideHm(){const t=$('#hm');t.hidden=true;t.dataset.u=''}
+function showHm(u,el,more){
+ const h=hnd(u),t=$('#hm');if(!h){hideHm();return}
+ t.dataset.u=u;t._el=el;
+ t.innerHTML=more
+  ?`<button data-a="hview" data-i="${u}">Ver ampliada</button><button data-a="hbot" data-i="${u}">Enviar al fondo del Deck</button><button data-a="hback" data-i="${u}">← Volver</button>`
+  :`<button data-a="hup" data-i="${u}">Jugar boca arriba</button><button data-a="hdn" data-i="${u}">Jugar boca abajo</button><button data-a="hdeck" data-i="${u}">Devolver al mazo</button><button data-a="hmore" data-i="${u}">Más…</button>`;
+ t.hidden=false;
+ const r=el.getBoundingClientRect(),w=t.offsetWidth,hh=t.offsetHeight;
+ let y=h.o==='rv'?r.bottom+6:r.top-hh-6;y=Math.max(4,Math.min(y,innerHeight-hh-4));
+ t.style.left=Math.max(4,Math.min(innerWidth-w-4,r.left+r.width/2-w/2))+'px';t.style.top=y+'px';
+}
+const fr=(px,py)=>{const m=$('#mat').getBoundingClientRect();return{x:Math.min(.97,Math.max(.03,(px-m.left)/m.width)),y:Math.min(.97,Math.max(.03,(py-m.top)/m.height))}};
+const overPile=(px,py)=>$$('.pile').find(e=>{const r=e.getBoundingClientRect();return px>=r.left&&px<=r.right&&py>=r.top&&py<=r.bottom});
+const addBoard=(cid,p,o,x,y)=>{const c={u:uid(),cid,p,o,x,y,r:0,down:false,t:++S.top};S.game.board.push(c);return c};
+function toBottom(o,cid){
+ const P=S.game.piles.find(p=>p.o===o);
+ if(!P){toast('No hay mazo principal');return null}
+ P.cards.unshift(cid);return P;
+}
+function dropBoard(u,px,py,tc){
+ const c=brd(u),pe=tc?(tc.ok?overPile(tc.x,tc.y):null):overPile(px,py);
+ if(pe){pile(pe.dataset.p).cards.push(c.cid);S.game.board=S.game.board.filter(x=>x!==c)}
+ else{Object.assign(c,fr(px,py));c.t=++S.top;snapTo(c)}
+ save();rGame();
+}
+function dropHand(u,px,py){
+ const h=hnd(u),m=$('#mat').getBoundingClientRect();
+ if(px<m.left||px>m.right||py<m.top||py>m.bottom)return;
+ const pe=overPile(px,py);rmHand(h);
+ if(pe)pile(pe.dataset.p).cards.push(h.cid);else{const f=fr(px,py);snapTo(addBoard(h.cid,h.p,h.o,f.x,f.y))}
+ save();rGame();
+}
+function playHand(u,down){
+ const h=hnd(u);if(!h)return;rmHand(h);
+ const c=addBoard(h.cid,h.p,h.o,.3+Math.random()*.55,h.o==='me'?.52+Math.random()*.1:.48-Math.random()*.1);c.down=!!down;
+ hideHm();save();rGame();
+}
+function revealTop(P){
+ if(!P.cards.length){toast('El mazo está vacío');return}
+ addBoard(P.cards.pop(),P.id,P.o,P.x,P.y);
+}
+function playTopDown(P){
+ if(!P.cards.length){toast('El mazo está vacío');return}
+ const c=addBoard(P.cards.pop(),P.id,P.o,P.x>.3?P.x-.16:P.x+.16,Math.max(.12,Math.min(.88,P.y+(P.o==='me'?-.26:.26))));c.down=true;
+}
+
+/* ---------- ver / buscar en el mazo ---------- */
+function pgHtml(){
+ const P=pile(pv.p),all=[...P.cards.keys()];
+ const ix=pv.mode==='all'?all.reverse():pv.mode==='top'?all.reverse().slice(0,pv.n):all.slice(0,pv.n);
+ return ix.map(i=>{const c=card(P.cards[i]);return `<div class="pc"><img src="${c.src}"><small>${esc(c.name)}</small><div class="bar" style="margin:0;gap:3px"><button class="btn" data-a="v2h" data-i="${i}">Mano</button><button class="btn" data-a="v2u" data-i="${i}">Mesa ↑</button><button class="btn" data-a="v2d" data-i="${i}">Mesa ↓</button></div></div>`}).join('')||'<p class="m">Sin cartas.</p>';
+}
+function pvM(){
+ const P=pile(pv.p);
+ setM(`<h3>${esc(P.name)} · ${P.cards.length} cartas <span class="m">(la de arriba va primero)</span></h3><div class="bar">
+ ${[['top','Ver Top'],['bot','Ver Fondo'],['all','Buscar']].map(([k,l])=>`<button class="chip ${pv.mode===k?'on':''}" data-a="pm" data-i="${k}">${l}</button>`).join('')}
+ ${pv.mode!=='all'?`<input type="number" id="pn" min="1" max="${P.cards.length||1}" value="${pv.n}" style="width:64px">`:'<button class="btn" data-a="pshuf">Barajar</button>'}
+ <button class="btn" data-a="mc">Cerrar</button></div><div id="pg">${pgHtml()}</div>`);
+}
+function openPv(p,mode){hideTb();pv={p,mode,n:3};pvM()}
+function takeFromPile(i,m){
+ const P=pile(pv.p),[cid]=P.cards.splice(+i,1);
+ if(m==='h')S.game.hand[P.o].push({u:uid(),cid,p:P.id,o:P.o});
+ else{const c=addBoard(cid,P.id,P.o,Math.max(.1,Math.min(.9,P.x+(P.x>.5?-.14:.14))),Math.max(.1,Math.min(.9,P.y+(P.o==='me'?-.25:.25)+(Math.random()-.5)*.05)));c.down=m==='d'}
+ save();pvM();rGame();
+}
+function infoM(){
+ const G=S.game,sec=(o,t)=>`<h3 style="margin-top:8px">${t}</h3>${G.lp?`<div class="kv"><span>Puntos de vida</span><b>${G.lp[o]}</b></div>`:''}${G.piles.filter(p=>p.o===o).map(p=>`<div class="kv"><span>Mazo · ${esc(p.name)}</span><b>${p.cards.length}</b></div>`).join('')}<div class="kv"><span>En la mano</span><b>${G.hand[o].length}</b></div><div class="kv"><span>En la mesa</span><b>${G.board.filter(c=>c.o===o).length}</b></div>`;
+ setM(`<h3>Información de la partida</h3><div class="kv"><span>Turno</span><b>${G.turn}</b></div><div class="kv"><span>Fase actual</span><b>${esc(G.phases[G.phase])}</b></div>${G.mode===2?`<div class="kv"><span>Empezó</span><b>${G.first==='me'?'Tú':'Rival'}</b></div><div class="kv"><span>Juega ahora</span><b>${activeO()==='me'?'Tú':'Rival'}</b></div>`:''}${sec('me',G.mode===2?'Tú':'Jugador')}${G.mode===2?sec('rv','Rival'):''}<div class="bar" style="margin-top:10px"><button class="btn pri" data-a="mc">Cerrar</button></div>`);
+}
+function chgM(){
+ const G=S.game,o=chg.o,ds=S.decks.filter(d=>d.subs.some(s=>s.list.length));
+ if(!ds.length){toast('No hay decks con cartas');return}
+ const d=ds.find(x=>x.id===chg.deck)||ds[0];chg.deck=d.id;
+ setM(`<h3>Cambiar deck</h3>${G.mode===2?`<div class="bar"><button class="chip ${o==='me'?'on':''}" data-a="cho" data-i="me">Mi deck</button><button class="chip ${o==='rv'?'on':''}" data-a="cho" data-i="rv">Rival</button></div>`:''}
+ <div class="set"><label>Deck <select id="cd">${ds.map(x=>`<option value="${x.id}" ${x.id===d.id?'selected':''}>${esc(x.tcg)} · ${esc(x.name)}</option>`).join('')}</select></label></div>
+ <div class="set" id="cs">${subsHtml(d)}</div>
+ <div class="m" style="font-size:12px;margin-bottom:8px">Se baraja el nuevo deck y se reparte una mano nueva. Las cartas en mesa de ese jugador se descartan.</div>
+ <div class="bar"><button class="btn pri" data-a="chgok">Aplicar</button><button class="btn" data-a="mc">Cancelar</button></div>`);
+}
+function gmHtml(){
+ const G=S.game,two=G.mode===2;
+ return `<button data-a="phnext">Siguiente fase ▶</button><button data-a="grs">Reiniciar partida</button><button data-a="gch">Cambiar Deck</button><button data-a="gcfg">Fases y LP</button><button data-a="ginf">Información</button><button data-a="gdr" data-i="me">Robar 1${two?' (yo)':''}</button>${two?`<button data-a="gdr" data-i="rv">Robar 1 (rival)</button><button data-a="ghide">${G.hideRv?'Mostrar':'Ocultar'} mano del rival</button>`:''}${G.lp?'<button data-a="lprs">Reiniciar LP</button>':''}${two?'<button data-a="gdice">Dados: quién empieza</button>':''}<button data-a="gd6">Tirar un dado (1-6)</button><button data-a="gclr">Limpiar mesa</button><button data-a="gexit">Salir</button>`;
+}
+
+/* ---------- zonas: imán suave, giro y tamaño de carta ---------- */
+const rad=d=>d*Math.PI/180;
+const cardW=(w,h,two)=>S.set.auto?Math.max(38,innerWidth>=900?Math.min(w/12,h/(two?6:5.2),130):Math.min(w/8,h/4.6,110)):S.set.cw;
+function fitZones(W,H){
+ const G=S.game;if(!G||!G.zones||!W||!H)return;
+ const cw=parseFloat(getComputedStyle($('#mat')).getPropertyValue('--cw'))||70;
+ G.zones.forEach(z=>{if(!z.fit)return;const cx=z.x+z.w/2,cy=z.y+z.h/2;z.w=cw/W;z.h=cw*1.4/H;z.x=cx-z.w/2;z.y=cy-z.h/2});
+}
+function zoneAt(x,y,m=.025){
+ const mt=$('#mat');if(!mt)return undefined;
+ const W=mt.clientWidth,H=mt.clientHeight,mp=m*Math.min(W,H);
+ return (S.game.zones||[]).slice().reverse().find(z=>{
+  const t=rad(z.rot||0),co=Math.cos(t),si=Math.sin(t),dx=(x-(z.x+z.w/2))*W,dy=(y-(z.y+z.h/2))*H;
+  const lx=dx*co+dy*si,ly=-dx*si+dy*co;
+  return Math.abs(lx)<=z.w*W/2+mp&&Math.abs(ly)<=z.h*H/2+mp;
+ });
+}
+function snapTo(o){
+ const G=S.game;if(!G.zones||!G.zones.length)return;
+ const z=zoneAt(o.x,o.y);if(!z)return;
+ const k=o.u?Math.min(5,G.board.filter(q=>q!==o&&zoneAt(q.x,q.y,0)===z).length):0;
+ SNAP[o.u||o.id]={x:o.x,y:o.y};
+ if(o.u){
+  const r0=o.r||0;
+  if(z.rot){o.r=z.rot;o.zr=1}
+  else if(o.zr){o.r=0;delete o.zr}
+  if(o.r!==r0)SNAP[o.u].r=o.r+((((r0-o.r)%360)+540)%360-180);
+ }
+ o.x=z.x+z.w/2+k*.006;o.y=z.y+z.h/2+k*.01;
+}
+
+/* ---------- editor de tableros personalizados ---------- */
+function rBl(){
+ const e=$('#bl');if(!e)return;
+ e.innerHTML=S.boards.map(b=>`<div class="bi"><div class="bth">${b.zones.map(z=>`<i style="left:${z.x*100}%;top:${z.y*100}%;width:${z.w*100}%;height:${z.h*100}%${z.rot?`;transform:rotate(${z.rot}deg)`:''}"></i>`).join('')}</div><div class="di"><b>${esc(b.name)}</b><small>${b.tcg?esc(b.tcg)+' · ':''}${b.zones.length} zonas</small></div><button class="btn" data-a="bedit" data-i="${b.id}">Editar</button><button class="btn dng" data-a="bdel" data-i="${b.id}" aria-label="Borrar tablero">🗑</button></div>`).join('')||'<p class="m">Aún no hay tableros guardados.</p>';
+}
+const bz=()=>BE&&BE.zones.find(z=>z.id===BE.sel);
+const bcv=()=>{const c=$('#bec');return{W:c.clientWidth||1,H:c.clientHeight||1}};
+const ecw=()=>{const c=$('#bec');if(!c||!c.clientWidth)return 0;return cardW(innerWidth,Math.max(200,innerHeight-230),true)*(c.clientWidth/innerWidth)};
+/* tamaño de carta: w/h con la proporción 5:7 de las cartas, manteniendo el centro */
+function zfit(z){
+ if(!z.fit)return;const cw=ecw();if(!cw)return;const{W,H}=bcv();
+ const cx=z.x+z.w/2,cy=z.y+z.h/2;z.w=cw/W;z.h=cw*1.4/H;z.x=cx-z.w/2;z.y=cy-z.h/2;
+}
+/* mitad del ancho y alto (en fracciones) que ocupa la zona ya girada */
+function extent(z){
+ const{W,H}=bcv(),t=rad(z.rot||0),c=Math.abs(Math.cos(t)),s=Math.abs(Math.sin(t));
+ return{hw:(z.w*W*c+z.h*H*s)/2/W,hh:(z.w*W*s+z.h*H*c)/2/H};
+}
+function clampZ(z){
+ const{hw,hh}=extent(z);let cx=z.x+z.w/2,cy=z.y+z.h/2;
+ cx=hw>=.5?.5:Math.min(1-hw,Math.max(hw,cx));cy=hh>=.5?.5:Math.min(1-hh,Math.max(hh,cy));
+ z.x=cx-z.w/2;z.y=cy-z.h/2;
+}
+const insideZ=z=>{const{hw,hh}=extent(z),cx=z.x+z.w/2,cy=z.y+z.h/2;return cx-hw>=-1e-6&&cx+hw<=1+1e-6&&cy-hh>=-1e-6&&cy+hh<=1+1e-6};
+/* simetría: "rot" = cara a cara (giro de 180° del tapete), "mir" = espejo arriba/abajo */
+function mir(z){
+ const m=BE.symMode==='mir',r=z.rot||0;
+ return{x:m?z.x:1-z.x-z.w,y:1-z.y-z.h,w:z.w,h:z.h,rot:m?(360-r)%360:(r+180)%360,fit:!!z.fit};
+}
+const twin=z=>z.pair?BE.zones.find(q=>q.id===z.pair):null;
+const syncTwin=z=>{if(!BE.sym)return;const t=twin(z);if(t)Object.assign(t,mir(z))};
+function ensureTwin(z){
+ if(!BE.sym)return null;
+ let t=twin(z);if(t)return t;
+ const m=mir(z),cx=m.x+m.w/2,cy=m.y+m.h/2;
+ if(Math.abs(z.x+z.w/2-cx)<.015&&Math.abs(z.y+z.h/2-cy)<.015)return null;
+ t=BE.zones.find(q=>q!==z&&!q.pair&&Math.abs(q.x+q.w/2-cx)<.03&&Math.abs(q.y+q.h/2-cy)<.03);
+ if(t){Object.assign(t,m);t.pair=z.id;z.pair=t.id;return t}
+ t=Object.assign({id:uid(),name:z.name+(BE.symMode==='mir'?' (espejo)':' (rival)'),pair:z.id},m);
+ z.pair=t.id;BE.zones.push(t);return t;
+}
+/* alineación magnética: bordes y centros de las demás zonas y del tapete */
+const SN_PX=8;
+function snapTargets(ex){
+ const xs=[],ys=[];
+ const add=(l,r,t,b,cx,cy)=>{xs.push({v:l,a:t,b:b},{v:cx,a:t,b:b},{v:r,a:t,b:b});ys.push({v:t,a:l,b:r},{v:cy,a:l,b:r},{v:b,a:l,b:r})};
+ add(0,1,0,1,.5,.5);
+ BE.zones.forEach(q=>{if(ex.includes(q))return;const{hw,hh}=extent(q),cx=q.x+q.w/2,cy=q.y+q.h/2;add(cx-hw,cx+hw,cy-hh,cy+hh,cx,cy)});
+ return{xs,ys};
+}
+const snapV=(v,lines,tol)=>{let best=null;lines.forEach(l=>{const d=l.v-v;if(Math.abs(d)<=tol&&(best===null||Math.abs(d)<Math.abs(best)))best=d});return best===null?v:v+best};
+function snapMove(z,ex){
+ const T=snapTargets(ex),{W,H}=bcv(),tx=SN_PX/W,ty=SN_PX/H,{hw,hh}=extent(z);
+ let cx=z.x+z.w/2,cy=z.y+z.h/2,bx=null,by=null;
+ [cx-hw,cx,cx+hw].forEach(f=>T.xs.forEach(l=>{const d=l.v-f;if(Math.abs(d)<=tx&&(bx===null||Math.abs(d)<Math.abs(bx)))bx=d}));
+ [cy-hh,cy,cy+hh].forEach(f=>T.ys.forEach(l=>{const d=l.v-f;if(Math.abs(d)<=ty&&(by===null||Math.abs(d)<Math.abs(by)))by=d}));
+ if(bx!==null)cx+=bx;if(by!==null)cy+=by;
+ z.x=cx-z.w/2;z.y=cy-z.h/2;
+}
+function alignGuides(z,ex){
+ const{W,H}=bcv(),T=snapTargets(ex),{hw,hh}=extent(z),cx=z.x+z.w/2,cy=z.y+z.h/2;
+ const L=cx-hw,R=cx+hw,Tp=cy-hh,B=cy+hh,ex1=.6/W,ey1=.6/H,out=[],seen={};
+ const push=g=>{const k=g.o+Math.round(g.p*3000)+'_'+Math.round(g.a*500)+'_'+Math.round(g.b*500);if(!seen[k]&&out.length<10){seen[k]=1;out.push(g)}};
+ T.xs.forEach(l=>{if([L,cx,R].some(f=>Math.abs(l.v-f)<=ex1))push({o:'v',p:l.v,a:Math.min(Tp,l.a),b:Math.max(B,l.b)})});
+ T.ys.forEach(l=>{if([Tp,cy,B].some(f=>Math.abs(l.v-f)<=ey1))push({o:'h',p:l.v,a:Math.min(L,l.a),b:Math.max(R,l.b)})});
+ return out;
+}
+function snapPt(p,e){
+ if(!BE.snap||e.altKey)return p;
+ const T=snapTargets([]),{W,H}=bcv();
+ return{x:snapV(p.x,T.xs,SN_PX/W),y:snapV(p.y,T.ys,SN_PX/H)};
+}
+function finishZone(z){
+ if(BE.fitNew){z.fit=true;zfit(z)}
+ clampZ(z);BE.zones.push(z);BE.sel=z.id;ensureTwin(z);
+}
+function openBe(b){
+ BE={id:b.id,name:b.name,tcg:b.tcg||'',zones:JSON.parse(JSON.stringify(b.zones)),sel:null,tmp:null,sym:!!S.ui.bsym,symMode:S.ui.bsm==='mir'?'mir':'rot',fitNew:!!S.ui.bfn,snap:S.ui.bsn!==false,guides:[]};
+ BE.zones.forEach(z=>{z.rot=z.rot||0;z.fit=!!z.fit;if(!z.pair)delete z.pair});
+ $('#be').innerHTML=`<div class="bt"><input type="text" id="bnm" placeholder="Nombre del tablero" maxlength="40" value="${esc(BE.name)}"><select id="btg"><option value="">Cualquier TCG</option>${tcgs().map(t=>`<option ${t===BE.tcg?'selected':''}>${esc(t)}</option>`).join('')}</select></div>
+ <div class="bt"><button class="btn pri" data-a="bsave">Guardar</button><button class="btn" data-a="badd">+ Zona</button><button class="btn" data-a="bdup">Duplicar</button><button class="btn dng" data-a="bzdel">Quitar zona</button><button class="btn" data-a="bexit">Salir</button></div>
+ <div class="bt"><label><input type="checkbox" id="bsym" ${BE.sym?'checked':''}> Simetría</label><select id="bsm"><option value="rot" ${BE.symMode==='rot'?'selected':''}>Cara a cara (giro 180°)</option><option value="mir" ${BE.symMode==='mir'?'selected':''}>Espejo arriba/abajo</option></select><label><input type="checkbox" id="bfn" ${BE.fitNew?'checked':''}> Zonas nuevas al tamaño de carta</label><label><input type="checkbox" id="bsn" ${BE.snap?'checked':''}> 🧲 Alineación magnética</label></div>
+ <div class="bt" id="bsp"></div><div id="bec"></div>`;
+ $('#be').classList.add('on');rBsp();rBz();
+ BE.orig=JSON.stringify([BE.name,BE.tcg,BE.zones]);
+}
+function closeBe(){BE=null;BD=null;$('#be').classList.remove('on');$('#be').innerHTML=''}
+const bspHtml=z=>`<input type="text" id="bzn" maxlength="30" placeholder="Nombre de la zona" value="${esc(z.name)}">
+ <span class="rg"><span class="m">Giro</span>${[0,90,180,270].map(v=>`<button class="chip ${(z.rot||0)===v?'on':''}" data-a="brot" data-i="${v}">${v}°</button>`).join('')}</span>
+ <button class="btn ${z.fit?'pri':''}" data-a="bfit">${z.fit?'✓ ':''}Ajustar al tamaño de carta</button>`;
+function rBsp(){
+ const e=$('#bsp');if(!e||!BE)return;const z=bz();
+ /* reserva la altura del panel de zona desde el principio: así el tapete no cambia de tamaño al seleccionar una zona */
+ if(!BE.bsh){e.innerHTML=bspHtml({name:'',rot:0,fit:false});BE.bsh=e.offsetHeight;e.style.minHeight=BE.bsh+'px'}
+ e.innerHTML=z?bspHtml(z):'<span class="m">Toca una zona para renombrarla, girarla o ajustarla al tamaño de carta.</span>';
+}
+function rBz(){
+ const c=$('#bec');if(!c||!BE)return;
+ c.style.background=S.set.mat;
+ BE.zones.forEach(zfit);
+ const pos=z=>`left:${z.x*100}%;top:${z.y*100}%;width:${z.w*100}%;height:${z.h*100}%${z.rot?`;transform:rotate(${z.rot}deg)`:''}`;
+ c.innerHTML='<i class="bl t">Rival</i><i class="bl b">Tú</i>'
+  +BE.zones.map(z=>`<div class="bz${z.id===BE.sel?' sel':''}${z.fit?' fit':''}" data-z="${z.id}" style="${pos(z)}"><i class="ori">▲</i><span>${esc(z.name)}</span>${z.id===BE.sel&&!z.fit?'<b class="rh"></b>':''}</div>`).join('')
+  +(BE.tmp?`<div class="bz tmp" style="left:${BE.tmp.x*100}%;top:${BE.tmp.y*100}%;width:${BE.tmp.w*100}%;height:${BE.tmp.h*100}%"></div>`:'')
+  +(BE.guides||[]).map(g=>g.o==='v'?`<i class="gl v${BE.gfade?' gf':''}" style="left:${g.p*100}%;top:${g.a*100}%;height:${(g.b-g.a)*100}%"></i>`:`<i class="gl h${BE.gfade?' gf':''}" style="top:${g.p*100}%;left:${g.a*100}%;width:${(g.b-g.a)*100}%"></i>`).join('');
+}
+const bpt=e=>{const r=$('#bec').getBoundingClientRect();return{x:Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),y:Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))}};
+document.addEventListener('pointerdown',e=>{
+ if(!BE||!e.target.closest('#bec'))return;
+ const p=bpt(e),zEl=e.target.closest('.bz'),h=e.target.closest('.rh');
+ clearTimeout(BE.gt);BE.gfade=false;BE.guides=[];
+ try{$('#bec').setPointerCapture(e.pointerId)}catch(_){}
+ if(h&&zEl){
+  const z=bz(),{W,H}=bcv(),t=rad(z.rot||0),co=Math.cos(t),si=Math.sin(t),w0=z.w*W,h0=z.h*H,cx=(z.x+z.w/2)*W,cy=(z.y+z.h/2)*H;
+  BD={m:'rs',z,sx:p.x,sy:p.y,w:z.w,h:z.h,tlx:cx+(-w0/2)*co-(-h0/2)*si,tly:cy+(-w0/2)*si+(-h0/2)*co};
+ }
+ else if(zEl){const z=BE.zones.find(q=>q.id===zEl.dataset.z);BE.sel=z.id;BD={m:'mv',z,ox:p.x-z.x,oy:p.y-z.y};rBsp()}
+ else{BE.sel=null;const q=snapPt(p,e);BD={m:'dr',x0:q.x,y0:q.y};rBsp()}
+ rBz();e.preventDefault();
+});
+document.addEventListener('pointermove',e=>{
+ if(!BE||!BD)return;
+ const p=bpt(e),z=BD.z;
+ const on=BE.snap&&!e.altKey;
+ if(BD.m==='mv'){
+  if(!BD.tw){BD.tw=1;ensureTwin(z)}
+  z.x=p.x-BD.ox;z.y=p.y-BD.oy;clampZ(z);
+  if(on){const ex=[z,twin(z)].filter(Boolean);snapMove(z,ex);clampZ(z);BE.guides=alignGuides(z,ex)}else BE.guides=[];
+  syncTwin(z);
+ }else if(BD.m==='rs'){
+  const{W,H}=bcv(),t=rad(z.rot||0),co=Math.cos(t),si=Math.sin(t),flat=((z.rot||0)%360)===0;
+  const dx=(p.x-BD.sx)*W,dy=(p.y-BD.sy)*H,lx=dx*co+dy*si,ly=-dx*si+dy*co;
+  let w=Math.max(.04,BD.w+lx/W),h=Math.max(.05,BD.h+ly/H);
+  const ex=[z,twin(z)].filter(Boolean);
+  if(on&&flat){const T=snapTargets(ex);w=Math.max(.04,snapV(z.x+w,T.xs,SN_PX/W)-z.x);h=Math.max(.05,snapV(z.y+h,T.ys,SN_PX/H)-z.y)}
+  const w1=w*W,h1=h*H,n={w,h,rot:z.rot||0};
+  n.x=(BD.tlx-((-w1/2)*co-(-h1/2)*si)-w1/2)/W;n.y=(BD.tly-((-w1/2)*si+(-h1/2)*co)-h1/2)/H;
+  if(insideZ(n)){if(!BD.tw){BD.tw=1;ensureTwin(z)}z.x=n.x;z.y=n.y;z.w=w;z.h=h;syncTwin(z);BE.guides=on&&flat?alignGuides(z,ex):[]}
+ }else{
+  const{W,H}=bcv(),T=on?snapTargets([]):null;
+  const q=on?{x:snapV(p.x,T.xs,SN_PX/W),y:snapV(p.y,T.ys,SN_PX/H)}:p;
+  BE.tmp={x:Math.min(BD.x0,q.x),y:Math.min(BD.y0,q.y),w:Math.abs(q.x-BD.x0),h:Math.abs(q.y-BD.y0)};
+  BE.guides=on?alignGuides(BE.tmp,[]):[];
+ }
+ rBz();
+});
+const bEnd=()=>{
+ if(!BE||!BD)return;
+ if(BD.m==='dr'){
+  const t=BE.tmp,big=t&&t.w>.03&&t.h>.04;
+  if(big){finishZone(Object.assign({id:uid(),name:'Zona '+(BE.zones.length+1),rot:0,fit:false},t));if(BE.fitNew)BE.guides=[];rBsp()}
+  else if(BE.fitNew){finishZone({id:uid(),name:'Zona '+(BE.zones.length+1),x:BD.x0-.09,y:BD.y0-.12,w:.18,h:.24,rot:0,fit:false});rBsp()}
+ }
+ BE.tmp=null;BD=null;
+ if(BE.guides&&BE.guides.length){BE.gfade=true;clearTimeout(BE.gt);BE.gt=setTimeout(()=>{if(BE){BE.guides=[];BE.gfade=false;rBz()}},800)}
+ rBz();
+};
+document.addEventListener('pointerup',bEnd);document.addEventListener('pointercancel',bEnd);
+
+/* ---------- contadores de jugador, marcas de carta, tamaño del HUD ---------- */
+function rCn(){
+ const G=S.game,two=G.mode===2;
+ [['cnm','me',two?'Tú':''],['cnr','rv','Rival']].forEach(([id,o,who])=>{
+  const el=$('#'+id);if(!el)return;
+  const on=!!G.cnt&&(o==='me'||two);el.hidden=!on;
+  if(on)el.innerHTML=(who?`<span class="cl">${who}</span>`:'')+`<button data-a="cn" data-i="${o}:-1" aria-label="Restar">−</button><button class="cv" data-a="cne" data-i="${o}" aria-label="Editar contador">${G.cnt[o]}</button><button data-a="cn" data-i="${o}:1" aria-label="Sumar">+</button>`;
+ });
+}
+function cnEdit(o){
+ const G=S.game;if(!G||!G.cnt)return;
+ const cur=G.cnt[o],v=prompt('Nuevo valor del contador (actual '+cur+'). Escribe un número, o +5 / -5 para sumar o restar:','');
+ if(v===null)return;
+ const t=v.trim().replace('−','-');
+ if(!/^[+-]?\d+$/.test(t)){toast('Valor no válido');return}
+ G.cnt[o]=Math.max(-99999,Math.min(99999,/^[+-]/.test(t)?cur+parseInt(t,10):parseInt(t,10)));save();rBars();
+}
+function mkHtml(m){
+ const col=/^#[0-9a-f]{6}$/i.test(m.c)?m.c:'#facc15',n=parseInt(col.slice(1),16),lum=((n>>16&255)*.299+(n>>8&255)*.587+(n&255)*.114)/255;
+ return (m.dot?`<i class="mk d" style="background:${col}"></i>`:'')+(m.n?`<i class="mk n" style="background:${col};color:${lum>.6?'#0b1220':'#fff'}">${m.n}</i>`:'');
+}
+let MK=null;
+function mkM(u){
+ const c=brd(u);if(!c)return;MK=u;hideTb();
+ const m=c.mk||{n:0,dot:false,c:'#facc15'};
+ setM(`<h3>Contadores / Marcas</h3><div class="m" style="margin-bottom:8px">Marcas pequeñas y discretas sobre la carta.</div>
+ <div class="set"><span>Número</span><div class="bar" style="margin:0"><button class="btn" data-a="mkd" data-i="-1">−</button><input type="number" id="mkn" value="${m.n||0}" min="-999" max="999" style="width:80px"><button class="btn" data-a="mkd" data-i="1">+</button></div></div>
+ <div class="set"><label><input type="checkbox" id="mkp" ${m.dot?'checked':''}> Punto indicador</label><label>Color <input type="color" id="mkc" value="${m.c||'#facc15'}"></label></div>
+ <div class="bar"><button class="btn pri" data-a="mkok">Aplicar</button><button class="btn dng" data-a="mkx">Quitar marcas</button><button class="btn" data-a="mc">Cancelar</button></div>`);
+}
+function setHudScale(v){
+ v=Math.max(.7,Math.min(1.8,v));S.set.hudScale=Math.round(v*100)/100;
+ $('#hud').style.setProperty('--hs',S.set.hudScale);hudPos();save();
+}
+const HP=new Map();let pinch=null,pinchT=0;
+document.addEventListener('pointerdown',e=>{
+ if(!e.target.closest('#hud'))return;
+ HP.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(HP.size===2){
+  const[a,b]=[...HP.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,s:S.set.hudScale||1};
+  if(drag&&drag.k==='hud'){drag.el.classList.remove('drag');drag=null}
+ }
+},true);
+document.addEventListener('pointermove',e=>{
+ if(!HP.has(e.pointerId))return;
+ HP.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(pinch&&HP.size>=2){const[a,b]=[...HP.values()];setHudScale(pinch.s*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d)}
+});
+const hpEnd=e=>{if(pinch)pinchT=Date.now();HP.delete(e.pointerId);if(HP.size<2)pinch=null};
+document.addEventListener('pointerup',hpEnd,true);
+document.addEventListener('pointercancel',hpEnd,true);
+document.addEventListener('click',e=>{if(Date.now()-pinchT<350&&e.target.closest&&e.target.closest('#hud')){e.stopImmediatePropagation();e.preventDefault()}},true);
+
+/* ---------- flecha de ataque (SVG) y efecto de vibración ---------- */
+function arrowSvg(p,q,cw,prev){
+ const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy);if(len<2)return'';
+ const ux=dx/len,uy=dy/len,s=cw*.62,e=prev?0:cw*.7;
+ if(len<=s+e+4)return'';
+ const a=`x1="${(p.x+ux*s).toFixed(1)}" y1="${(p.y+uy*s).toFixed(1)}" x2="${(q.x-ux*e).toFixed(1)}" y2="${(q.y-uy*e).toFixed(1)}"`;
+ return `<line class="arg" ${a}/><line class="arl${prev?' arp':''}" ${a} marker-end="url(#arh)"/>`;
+}
+function drawArrows(ov){
+ const G=S.game,svg=$('#ar');if(!G||!svg)return;
+ const m=$('#mat'),W=m.clientWidth,H=m.clientHeight,cw=parseFloat(getComputedStyle(m).getPropertyValue('--cw'))||70;
+ const pos=u=>{if(ov&&ov.u===u)return{x:ov.x,y:ov.y};const c=brd(u);return c?{x:c.x*W,y:c.y*H}:null};
+ let h='<defs><marker id="arh" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.2" markerHeight="4.2" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff5d6c"/></marker></defs>';
+ (G.arrows||[]).forEach(a=>{const p=pos(a.a),q=pos(a.b);if(p&&q)h+=arrowSvg(p,q,cw,false)});
+ if(atk&&atk.px!=null){const p=pos(atk.u);if(p)h+=arrowSvg(p,{x:atk.px,y:atk.py},cw,true)}
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML=h;
+}
+function atkPrev(px,py){const m=$('#mat').getBoundingClientRect();atk.px=px-m.left;atk.py=py-m.top;drawArrows()}
+function cancelAtk(){if(!atk)return;atk=null;$$('.bc.atk').forEach(e=>e.classList.remove('atk'));drawArrows()}
+function atkPick(u){
+ const a=atk;if(!a)return;
+ if(u===a.u){cancelAtk();toast('Flecha cancelada');return}
+ const G=S.game;G.arrows=(G.arrows||[]).filter(x=>x.a!==a.u);G.arrows.push({a:a.u,b:u});
+ atk=null;hideTb();save();place();toast('⚔ ¡Ataque declarado!');
+}
+function fxCard(u){
+ FX[u]=Date.now();
+ const e=$(`.bc[data-u="${u}"]`);
+ if(e){e.style.animationDelay='';e.classList.remove('fx');void e.offsetWidth;e.classList.add('fx')}
+ setTimeout(()=>{
+  if(FX[u]&&Date.now()-FX[u]>=990){delete FX[u];const el=$(`.bc[data-u="${u}"]`);if(el){el.classList.remove('fx');el.style.animationDelay=''}}
+ },1000);
+}
+
+/* ---------- arrastre (ratón y táctil) ---------- */
+document.addEventListener('pointerdown',e=>{
+ lastPT=e.pointerType;
+ const t=e.target.closest('.tc,.bc,.pile');
+ if(!e.target.closest('#hm')&&!(t&&t.classList.contains('tc')))hideHm();
+ const hg=e.target.closest('#hud .hg');
+ if(hg&&HP.size<2){
+  const h=$('#hud'),r=h.getBoundingClientRect();
+  drag={k:'hud',el:h,sx:e.clientX,sy:e.clientY,ox:e.clientX-r.left,oy:e.clientY-r.top,on:true};
+  h.classList.add('drag');try{hg.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();return;
+ }
+ if(t){
+  const r=t.getBoundingClientRect(),k=t.classList.contains('tc')?'hand':t.classList.contains('bc')?'card':'pile';
+  drag={k,id:t.dataset.u||t.dataset.p,el:t,sx:e.clientX,sy:e.clientY,on:false,dir:t.closest('#tlr')?1:-1,ox:e.clientX-(r.left+r.width/2),oy:e.clientY-(r.top+r.height/2)};
+  try{t.setPointerCapture(e.pointerId)}catch(_){}
+ }else if(e.target.closest('#mat')&&!e.target.closest('#tb,#hb,#gm,#hud,.cn')){hideTb();hideGm();cancelAtk()}
+});
+document.addEventListener('pointermove',e=>{
+ if(atk&&!drag&&e.target.closest&&e.target.closest('#mat'))atkPrev(e.clientX,e.clientY);
+ if(!drag)return;
+ if(drag.k==='hud'){
+  const h=drag.el,w=h.offsetWidth,hh=h.offsetHeight;
+  h.style.left=Math.max(4,Math.min(innerWidth-w-4,e.clientX-drag.ox))+'px';h.style.top=Math.max(4,Math.min(innerHeight-hh-4,e.clientY-drag.oy))+'px';return;
+ }
+ const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy,h=drag.k==='hand',touch=e.pointerType!=='mouse';
+ if(!drag.on){
+  const d=Math.hypot(dx,dy);
+  if(!(h?(!touch?d>6:(dy*drag.dir>10&&Math.abs(dy)>Math.abs(dx))):d>(touch?12:5)))return;
+  drag.on=true;hideTb();hideHm();hideGm();
+  if(h){const c=card(hnd(drag.id).cid);ghost=new Image();ghost.id='ghost';ghost.src=c.src;ghost.style.width=getComputedStyle($('#mat')).getPropertyValue('--cw');ghost.style.height='auto';document.body.append(ghost)}
+  else{const o=drag.k==='card'?brd(drag.id):pile(drag.id);o.t=++S.top;drag.el.style.zIndex=o.t;drag.el.classList.add('drag')}
+ }
+ if(h){ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px'}
+ else{const m=$('#mat').getBoundingClientRect(),cx=e.clientX-drag.ox-m.left,cy=e.clientY-drag.oy-m.top;drag.el.style.left=cx+'px';drag.el.style.top=cy+'px';if(drag.k==='card')drawArrows({u:drag.id,x:cx,y:cy})}
+});
+document.addEventListener('pointerup',e=>{
+ if(!drag)return;const d=drag;drag=null;
+ if(d.k==='hud'){
+  d.el.classList.remove('drag');
+  const m=$('#mat').getBoundingClientRect(),r=d.el.getBoundingClientRect();
+  S.set.hudPos={x:r.left-m.left,y:r.top-m.top};save();return;
+ }
+ if(d.k==='hand'){
+  if(ghost){ghost.remove();ghost=null}
+  if(d.on)dropHand(d.id,e.clientX,e.clientY);
+  else{const hm=$('#hm');if(!hm.hidden&&hm.dataset.u===d.id)hideHm();else{menuT=Date.now();showHm(d.id,d.el)}}
+  return;
+ }
+ if(!d.on){
+  if(atk){if(d.k==='card'){atkPick(d.id);return}cancelAtk()}
+  if(d.k==='pile'){
+   const now=Date.now();
+   if(lastTap.id===d.id&&now-lastTap.t<350){lastTap={id:'',t:0};hideTb();draw(d.id);save();rGame();return}
+   lastTap={id:d.id,t:now};
+  }
+  if(tb&&tb.id===d.id)hideTb();else{menuT=Date.now();showTb(d.k,d.id)}
+  return;
+ }
+ const px=e.clientX-d.ox,py=e.clientY-d.oy;
+ if(d.k==='pile'){const P0=pile(d.id);Object.assign(P0,fr(px,py));snapTo(P0);save();place()}
+ else dropBoard(d.id,px,py,e.pointerType!=='mouse'?{x:e.clientX,y:e.clientY,ok:Math.hypot(e.clientX-d.sx,e.clientY-d.sy)>=40}:null);
+});
+document.addEventListener('pointercancel',()=>{if(!drag)return;if(ghost){ghost.remove();ghost=null}drag=null;if(view==='play'&&playing&&S.game)place()});
+
+/* ---------- acciones ---------- */
+document.addEventListener('click',e=>{
+ if(e.target.id==='md'){closeM();return}
+ const v=e.target.closest('[data-v]');if(v){show(v.dataset.v);return}
+ const b=e.target.closest('[data-a]');if(!b)return;
+ if(lastPT!=='mouse'&&b.closest('#tb,#hm')&&Date.now()-menuT<450)return;
+ const a=b.dataset.a,i=b.dataset.i,G=S.game;
+ const C=tb&&tb.k==='card'&&G?brd(tb.id):null,P=tb&&tb.k==='pile'&&G?pile(tb.id):null;
+ switch(a){
+  case'exit':setM('<h3>¿Seguro que deseas salir del simulador?</h3><div class="m" style="margin-bottom:10px">Tus cartas y mazos quedan guardados en este navegador.</div><div class="bar"><button class="btn pri" data-a="exitok">Sí, salir</button><button class="btn" data-a="mc">Cancelar</button></div>');break;
+  case'exitok':closeM();flush();$('#bye').classList.add('on');try{window.close()}catch(_){}break;
+  case'back':$('#bye').classList.remove('on');break;
+  case'reload':location.reload();break;
+  case'mc':case'icancel':closeM();break;
+  case'vw':S.set.view=S.set.view==='list'?'grid':'list';save();show(view);break;
+  /* cartas: selección, zoom y portapapeles */
+  case'det':if(selMode){SEL.has(i)?SEL.delete(i):SEL.add(i);refresh()}else zoomM(i);break;
+  case'zoomc':zoomM(i);break;
+  case'dedit':detM(i);break;
+  case'smode':selMode=!selMode;SEL.clear();refresh();break;
+  case'sdone':selMode=false;SEL.clear();refresh();break;
+  case'sall':if(VIS.every(id=>SEL.has(id)))SEL.clear();else VIS.forEach(id=>SEL.add(id));refresh();break;
+  case'scopy':case'scut':
+   if(!SEL.size){toast('Selecciona cartas primero');break}
+   CLIP={ids:[...SEL],mode:a==='scopy'?'copy':'cut'};toast((a==='scopy'?'Copiadas ':'Cortadas ')+SEL.size);SEL.clear();refresh();break;
+  case'spaste':if(!CLIP||!CLIP.ids.some(id=>card(id)))toast('El portapapeles está vacío');else pasteM();break;
+  case'pdo':{
+   const t0=$('#ptc').value.trim(),c0=$('#pct').value.trim(),ids=CLIP.ids.filter(id=>card(id));
+   if(CLIP.mode==='copy'){
+    let n=0;
+    for(const id of ids){
+     const o=card(id),nid=uid();
+     if(LS&&!put(KI+nid,o.src)){toast('Almacenamiento lleno: se pegaron '+n);break}
+     const t=t0?norm(t0,tcgs()):o.tcg,cat=c0?norm(c0,allCats()):o.cat;
+     S.cards.push({id:nid,src:o.src,name:(t===o.tcg&&cat===o.cat)?o.name+' (copia)':o.name,tcg:t,cat});n++;
+    }
+    if(n)toast(n+' carta(s) pegada(s)');
+   }else{
+    ids.forEach(id=>{const o=card(id);if(t0)o.tcg=norm(t0,tcgs());if(c0)o.cat=norm(c0,allCats())});
+    S.decks.forEach(d=>d.subs.forEach(s=>s.list=s.list.filter(id=>{const c=card(id);return c&&c.tcg===d.tcg})));
+    CLIP=null;toast('Cartas movidas');
+   }
+   save();closeM();refresh();break}
+  case'sdel':
+   if(!SEL.size)toast('Selecciona cartas primero');
+   else if(confirm('¿Borrar '+SEL.size+' carta(s) de todo el sistema?')){
+    [...SEL].forEach(delCard);SEL.clear();if(CLIP){CLIP.ids=CLIP.ids.filter(id=>card(id));if(!CLIP.ids.length)CLIP=null}
+    save();refresh();toast('Cartas borradas');
+   }break;
+  case'dsave':{
+   const n=$('#dnm').value.trim(),t=$('#dtc').value.trim();
+   if(!n||!t){toast('Nombre y TCG son obligatorios');break}
+   const c=card(i);c.name=n;c.tcg=norm(t,tcgs());c.cat=norm($('#dct').value,allCats())||'Sin categoría';
+   S.decks.forEach(d=>d.subs.forEach(s=>s.list=s.list.filter(id=>{const k=card(id);return k&&k.tcg===d.tcg})));
+   save();closeM();show(view);break}
+  case'delc':if(confirm('¿Borrar esta carta de todo el sistema?')){delCard(i);save();closeM();show(view)}break;
+  case'ball':{
+   const t=$('#bt').value.trim(),c=$('#bc').value.trim();
+   pend.forEach(p=>{if(t)p.tcg=t;if(c)p.cat=c;p.bad=false});impM();break}
+  case'isave':{
+   let ok=true;pend.forEach(p=>{p.bad=!p.name.trim()||!p.tcg.trim();if(p.bad)ok=false});
+   if(!ok){impM();toast('Falta el nombre o el TCG en alguna carta');break}
+   let n=0;
+   for(const p of pend){
+    const id=uid();
+    if(LS&&!put(KI+id,p.src)){toast('Almacenamiento lleno: se guardaron '+n+' de '+pend.length);break}
+    const t=norm(p.tcg,tcgs());
+    S.cards.push({id,src:p.src,name:p.name.trim(),tcg:t,cat:norm(p.cat,allCats())||'Sin categoría'});S.ui.tcg=t;n++;
+   }
+   if(!LS)toast('Almacenamiento bloqueado: los datos no se conservarán');
+   save();closeM();show(view);if(n)toast(n+' carta(s) importada(s)');break}
+  /* decks */
+  case'dnew':
+   if(!S.cards.length){toast('Importa cartas primero para crear un deck');break}
+   openEd({id:uid(),name:'',tcg:S.ui.tcg&&tcgs().includes(S.ui.tcg)?S.ui.tcg:tcgs()[0],subs:[{id:uid(),name:'Deck Principal',list:[]}]},true);break;
+  case'edit':openEd(dk(i),false);break;
+  case'ddel':if(confirm('¿Borrar el deck "'+dk(i).name+'"?')){S.decks=S.decks.filter(d=>d.id!==i);del(KT+i);save();rDecks()}break;
+  case'esave':{
+   const d=ED.d;d.name=($('#en').value.trim())||'Deck '+(S.decks.length+(ED.isNew?1:0));
+   if(d.thumb&&d.thumb.t==='img'&&d.thumbSrc){if(LS&&!put(KT+d.id,d.thumbSrc)){toast('No se pudo guardar la miniatura: almacenamiento lleno');d.thumb=null;delete d.thumbSrc}}
+   else del(KT+d.id);
+   const k=S.decks.findIndex(x=>x.id===d.id);if(k>-1)S.decks[k]=d;else S.decks.push(d);
+   S.ui.tcg=d.tcg;ED=null;save();rDecks();toast('Deck guardado');break}
+  case'eexit':if(dirty()&&!confirm('Hay cambios sin guardar. ¿Salir sin guardar?'))break;ED=null;rDecks();break;
+  case'esub':ED.sub=i;rEdP();break;
+  case'enews':{const n=prompt('Nombre del sub-deck',ED.d.subs.length===1?'Extra Deck':'Sub-deck '+(ED.d.subs.length+1));if(n&&n.trim()){const s={id:uid(),name:n.trim(),list:[]};ED.d.subs.push(s);ED.sub=s.id;rEdP()}break}
+  case'erens':{const s=curSub(),n=prompt('Nuevo nombre del sub-deck',s.name);if(n&&n.trim()){s.name=n.trim();rEdP()}break}
+  case'edels':{const s=curSub();if(ED.d.subs.length<2)toast('Debe quedar al menos un sub-deck');else if(confirm('¿Borrar el sub-deck "'+s.name+'"?')){ED.d.subs=ED.d.subs.filter(x=>x!==s);rEd()}break}
+  case'add':{const c=card(i);if(!c||c.tcg!==ED.d.tcg){toast('Esa carta no pertenece al TCG de este deck');break}const first=!sumD(ED.d);curSub().list.push(i);first?rEd():rEdP();break}
+  case'rm':{const L=curSub().list,k=L.indexOf(i);if(k>-1)L.splice(k,1);sumD(ED.d)?rEdP():rEd();break}
+  case'thc':setM(`<h3>Elegir carta como miniatura</h3><div class="bar"><input type="text" id="tq" placeholder="Buscar por nombre"><button class="btn" data-a="mc">Cancelar</button></div><div id="pg">${thGrid('')}</div>`);break;
+  case'tpick':ED.d.thumb={t:'card',id:i};delete ED.d.thumbSrc;closeM();rEd();break;
+  case'thm':thM();break;
+  case'thx':ED.d.thumb=null;delete ED.d.thumbSrc;closeM();rEd();break;
+  /* partida: configuración de fases y LP */
+  case'phadd':{const n=$('#phn').value.trim();if(!n)toast('Escribe el nombre de la fase');else if(S.ui.ph.length>=10)toast('Máximo 10 fases');else{S.ui.ph.push(n.slice(0,24));$('#phn').value='';save();rPh()}break}
+  case'phpre':if(S.ui.ph.length>=10)toast('Máximo 10 fases');else{S.ui.ph.push(i);save();rPh()}break;
+  case'phreset':S.ui.ph=['Draw Phase','Main Phase','Battle Phase','End Phase'];save();rPh();break;
+  case'phdel':if(S.ui.ph.length<=2)toast('Mínimo 2 fases');else{S.ui.ph.splice(+i,1);save();rPh()}break;
+  case'phup':case'phdn':{const k=+i,j=a==='phup'?k-1:k+1,L=S.ui.ph;if(j>=0&&j<L.length){[L[k],L[j]]=[L[j],L[k]];save();rPh()}break}
+  case'lpset':$('#lpn').value=i;break;
+  /* partida: turnos y vidas */
+  case'phnext':hideGm();if(G)phNext();break;
+  case'phprev':if(G)phPrev();break;
+  case'phgo':if(G){G.phase=+i;save();rBars()}break;
+  case'hudt':S.set.hudMode=S.set.hudMode==='list'?'bar':'list';save();rBars();break;
+  case'lp':{const q=i.split(':');lpAdd(q[0],+q[1]);break}
+  case'lpe':lpEdit(i);break;
+  case'lprs':if(G&&G.lp){G.lp.me=G.lp.rv=G.lp0;hideGm();save();rBars();toast('LP reiniciados')}break;
+  case'gcfg':if(G){hideGm();S.ui.lpOn=!!G.lp;S.ui.lp=G.lp0;S.ui.cnOn=!!G.cnt;S.ui.cn=G.cn0||0;S.ui.ph=G.phases.slice();cfgM()}break;
+  case'cfgok':{
+   if(!G)break;
+   const base=Math.max(1,Math.min(999999,parseInt($('#lpn').value,10)||8000)),on=$('#lpon').checked;
+   S.ui.ph=cleanPh(S.ui.ph);G.phases=S.ui.ph.slice();G.phase=Math.min(G.phase,G.phases.length-1);
+   S.ui.lpOn=on;S.ui.lp=base;
+   if(on){if(!G.lp||base!==G.lp0){G.lp={me:base,rv:base};G.lp0=base;G.lpStep=base>=1000?[100,1000]:[1,5]}}else G.lp=null;
+   {const cn=$('#cnon').checked,cb=Math.max(-9999,Math.min(99999,parseInt($('#cnn').value,10)||0));S.ui.cnOn=cn;S.ui.cn=cb;if(cn){if(!G.cnt||cb!==G.cn0){G.cnt={me:cb,rv:cb};G.cn0=cb}}else G.cnt=null}
+   closeM();save();rBars();toast('Configuración aplicada');break}
+  /* partida */
+  case'gmode':S.ui.gm=+i;save();rSetup();break;
+  case'cont':if(S.game){playing=true;rGame()}break;
+  case'go':{
+   const m=S.ui.gm,cfg={me:{deck:$('#gd1').value,subs:$$('#gs1 input:checked').map(x=>x.value)}};
+   if(m===2)cfg.rv={deck:$('#gd2').value,subs:$$('#gs2 input:checked').map(x=>x.value)};
+   if(S.ui.bm==='zones'){const bd=S.boards.find(b=>b.id===S.ui.bd)||S.boards[0];if(!bd){toast('Crea un tablero en Ajustes o elige Tablero Libre');break}cfg.zones=JSON.parse(JSON.stringify(bd.zones));cfg.zname=bd.name}
+   if(S.game&&!confirm('Ya hay una partida en curso. ¿Empezar una nueva?'))break;
+   S.ui.cnOn=$('#cnon').checked;S.ui.cn=Math.max(-9999,Math.min(99999,parseInt($('#cnn').value,10)||0));S.ui.lpOn=$('#lpon').checked;S.ui.lp=Math.max(1,Math.min(999999,parseInt($('#lpn').value,10)||8000));
+   S.ui.ph=cleanPh(S.ui.ph);if(m===2){const dc=$('#dice');S.ui.dice=dc?dc.checked:true}
+   if(newGame(m,cfg)&&m===2&&S.ui.dice)diceM();break}
+  case'gmenu':hideTb();if($('#gm').hidden){$('#gm').innerHTML=gmHtml();$('#gm').hidden=false}else hideGm();break;
+  case'grs':hideGm();askRestart();break;
+  case'rs':restart(i);break;
+  case'gch':if(G){hideGm();chg={o:'me',deck:G.cfg.me.deck};chgM()}break;
+  case'cho':chg.o=i;chg.deck=G.cfg[i].deck;chgM();break;
+  case'chgok':if(loadPlayer(chg.o,$('#cd').value,$$('#cs input:checked').map(x=>x.value))){closeM();hideTb();save();rGame();toast('Deck cambiado')}break;
+  case'ginf':hideGm();infoM();break;
+  case'gdr':hideGm();draw(G.piles.find(p=>p.o===i).id);save();rGame();break;
+  case'ghide':G.hideRv=!G.hideRv;hideGm();save();rGame();break;
+  case'gdice':if(G){hideGm();diceM()}break;
+  case'gd6':hideGm();toast('🎲 Dado: '+(1+Math.floor(Math.random()*6)));break;
+  case'gclr':if(!G)toast('No hay partida en curso');else{clearTable();hideGm();hideTb();save();toast('Mesa limpia');if(view==='play'&&playing)rGame()}break;
+  case'gexit':playing=false;hideGm();hideTb();hideHm();rGame();break;
+  case'cmore':showTb('card',tb.id,true);break;
+  case'cback':showTb('card',tb.id,false);break;
+  case'cbot':if(C){const P0=toBottom(C.o,C.cid);if(P0){G.board=G.board.filter(c=>c!==C);hideTb();save();rGame();toast('Enviada al fondo de '+P0.name)}}break;
+  case'hmore':showHm(i,$('#hm')._el,true);break;
+  case'hback':showHm(i,$('#hm')._el,false);break;
+  case'hbot':{const h=hnd(i),P0=h&&toBottom(h.o,h.cid);if(P0){rmHand(h);hideHm();save();rGame();toast('Enviada al fondo de '+P0.name)}break}
+  case'hup':playHand(i,false);break;
+  case'hdn':playHand(i,true);break;
+  case'hview':{const h=hnd(i);hideHm();if(h)zoomM(h.cid,true);break}
+  case'hdeck':{const h=hnd(i);if(h){rmHand(h);home(h.o,h.p).cards.push(h.cid);hideHm();save();rGame()}break}
+  case'x':hideTb();break;
+  case'bmode':S.ui.bm=i;save();rSetup();break;
+  case'bnew':openBe({id:uid(),name:'',tcg:S.ui.tcg||'',zones:[]});break;
+  case'bedit':{const b=S.boards.find(x=>x.id===i);if(b)openBe(b);break}
+  case'bdel':{const b=S.boards.find(x=>x.id===i);if(b&&confirm('¿Borrar el tablero "'+b.name+'"?')){S.boards=S.boards.filter(x=>x!==b);if(S.ui.bd===b.id)S.ui.bd='';save();rBl()}break}
+  case'badd':if(BE){const n=BE.zones.length,z={id:uid(),name:'Zona '+(n+1),x:Math.min(.8,.4+(n%5)*.03),y:Math.min(.7,.38+(n%5)*.03),w:.18,h:.24,rot:0,fit:false};finishZone(z);rBsp();rBz()}break;
+  case'bdup':{const z=bz();if(!z){toast('Toca una zona primero');break}const n=Object.assign({},z,{id:uid(),name:z.name+' (copia)',x:z.x+.03,y:z.y+.03});delete n.pair;clampZ(n);BE.zones.push(n);BE.sel=n.id;ensureTwin(n);rBsp();rBz();break}
+  case'bzdel':{
+   const z=bz();if(!z){toast('Toca una zona primero');break}
+   const t=twin(z),both=BE.sym&&t;
+   BE.zones=BE.zones.filter(x=>x!==z&&!(both&&x===t));if(t&&!both)delete t.pair;
+   BE.sel=null;rBsp();rBz();if(both)toast('Zona y su simétrica quitadas');break}
+  case'brot':{const z=bz();if(!z)break;z.rot=+i;clampZ(z);if(BE.sym){ensureTwin(z);syncTwin(z)}rBsp();rBz();break}
+  case'bfit':{
+   const z=bz();if(!z){toast('Toca una zona primero');break}
+   z.fit=!z.fit;if(z.fit){zfit(z);clampZ(z)}
+   if(BE.sym){ensureTwin(z);syncTwin(z)}rBsp();rBz();break}
+  case'bsave':{
+   if(!BE.zones.length){toast('Dibuja al menos una zona');break}
+   const r=n=>Math.round(n*10000)/10000,nm=(BE.name||'').trim()||'Tablero '+(S.boards.length+(S.boards.some(x=>x.id===BE.id)?0:1));
+   const nb={id:BE.id,name:nm,tcg:BE.tcg,zones:BE.zones.map(z=>({id:z.id,name:(z.name||'').trim()||'Zona',x:r(z.x),y:r(z.y),w:r(z.w),h:r(z.h),rot:z.rot||0,fit:!!z.fit,pair:z.pair||''}))};
+   const k=S.boards.findIndex(x=>x.id===nb.id);if(k>-1)S.boards[k]=nb;else S.boards.push(nb);
+   S.ui.bd=nb.id;save();closeBe();rBl();toast('Tablero guardado');break}
+  case'bexit':if(BE&&JSON.stringify([BE.name,BE.tcg,BE.zones])!==BE.orig&&!confirm('Hay cambios sin guardar. ¿Salir sin guardar?'))break;closeBe();break;
+  case'cn':{const q=i.split(':');if(G&&G.cnt){G.cnt[q[0]]=Math.max(-99999,Math.min(99999,G.cnt[q[0]]+ +q[1]));save();rBars()}break}
+  case'cne':cnEdit(i);break;
+  case'hudz':{const L=[.8,1,1.3,1.6],c=S.set.hudScale||1;setHudScale(L.find(x=>x>c+.05)||L[0]);break}
+  case'mkm':if(C)mkM(C.u);break;
+  case'mkd':{const e=$('#mkn');if(e)e.value=Math.max(-999,Math.min(999,(parseInt(e.value,10)||0)+(+i)))}break;
+  case'mkok':{const c=MK&&brd(MK);if(c){const n=Math.max(-999,Math.min(999,parseInt($('#mkn').value,10)||0)),d=$('#mkp').checked;if(n||d)c.mk={n,dot:d,c:$('#mkc').value};else delete c.mk;save();place()}MK=null;closeM();break}
+  case'mkx':{const c=MK&&brd(MK);if(c){delete c.mk;save();place()}MK=null;closeM();break}
+  case'atk':if(C){
+   if(atk&&atk.u===C.u){cancelAtk();toast('Flecha cancelada');showTb('card',C.u,false)}
+   else if((G.arrows||[]).some(x=>x.a===C.u)){G.arrows=G.arrows.filter(x=>x.a!==C.u);save();drawArrows();toast('Flecha cancelada');showTb('card',C.u,false)}
+   else{atk={u:C.u,px:null,py:null};hideTb();place();toast('Toca la carta objetivo')}
+  }break;
+  case'fx':if(C){const u=C.u;hideTb();fxCard(u)}break;
+  case'csel':if(C){C.sel=!C.sel;save();place()}break;
+  case'rot':if(C){C.r=C.r?0:90;delete C.zr;save();place()}break;
+  case'flip':if(C){C.down=!C.down;save();place()}break;
+  case'zoom':if(C)zoomM(C.cid,true);break;
+  case'toh':if(C){G.board=G.board.filter(c=>c!==C);G.hand[C.o].push({u:uid(),cid:C.cid,p:C.p,o:C.o});hideTb();save();rGame()}break;
+  case'ret':if(C){home(C.o,C.p).cards.push(C.cid);G.board=G.board.filter(c=>c!==C);hideTb();save();rGame()}break;
+  case'pdraw':if(P){draw(P.id);hideTb();save();rGame()}break;
+  case'pshuf2':if(P){shuffle(P.cards);hideTb();save();toast('Deck barajado')}break;
+  case'preveal':if(P){revealTop(P);hideTb();save();rGame()}break;
+  case'psearch':openPv(tb.id,'all');break;
+  case'pmore':showTb('pile',tb.id,true);break;
+  case'pback':showTb('pile',tb.id,false);break;
+  case'ptv':openPv(tb.id,'top');break;
+  case'pbv':openPv(tb.id,'bot');break;
+  case'ptd':if(P){playTopDown(P);hideTb();save();rGame()}break;
+  case'pm':pv.mode=i;pvM();break;
+  case'pshuf':shuffle(pile(pv.p).cards);save();pvM();toast('Deck barajado');break;
+  case'v2h':takeFromPile(i,'h');break;
+  case'v2u':takeFromPile(i,'u');break;
+  case'v2d':takeFromPile(i,'d');break;
+  case'th':S.set.theme=i;save();rSet();break;
+  case'wipe':if(confirm('Se borrará todo. ¿Continuar?')){if(LS)Object.keys(LS).filter(k=>k.indexOf('tcg2:')===0).forEach(k=>LS.removeItem(k));S=fresh();ED=null;CLIP=null;SEL.clear();selMode=false;playing=false;closeM();hideTb();show(view)}break;
+ }
+});
+document.addEventListener('input',e=>{
+ const t=e.target;
+ if(t.dataset.f){const p=pend[+t.dataset.k];p[t.dataset.f]=t.value;p.bad=false;t.closest('.row').classList.remove('bad')}
+ else if(t.dataset.ph!==undefined){S.ui.ph[+t.dataset.ph]=t.value;save()}
+ else if(t.id==='pn'){pv.n=Math.max(1,+t.value||1);$('#pg').innerHTML=pgHtml()}
+ else if(t.id==='tq')$('#pg').innerHTML=thGrid(t.value);
+ else if(t.id==='aq'&&ED){ED.q=t.value;rEdA()}
+ else if(t.id==='q')rDir();
+ else if(t.id==='en'&&ED)ED.d.name=t.value;
+ else if(t.id==='hs'){S.set.hand=Math.max(0,Math.min(20,+t.value||0));save()}
+ else if(t.id==='cw'){S.set.cw=+t.value;save();rCwp()}
+ else if(t.id==='mc'){S.set.mat=t.value;save();rSet()}
+ else if(t.id==='bnm'&&BE)BE.name=t.value;
+ else if(t.id==='bzn'&&BE){const z=bz();if(z){z.name=t.value;const l=$('#bec .bz.sel span');if(l)l.textContent=t.value}}
+});
+document.addEventListener('change',e=>{
+ const t=e.target;
+ if(t.id==='ft'||t.id==='fc')rDir();
+ else if(t.id==='si'){S.ui.si=t.value;save();rImp()}
+ else if(t.id==='sd'){S.ui.sd=t.value;save();rDir()}
+ else if(t.id==='sdk'){S.ui.sk=t.value;save();rOv()}
+ else if(t.id==='se'){S.ui.se=t.value;save();rEdP()}
+ else if(t.id==='etcg'&&ED){ED.d.tcg=t.value;rEd()}
+ else if(t.id==='tf'&&ED){const f=t.files[0];t.value='';if(f)toJpg(f,240,.8).then(s=>{ED.d.thumb={t:'img'};ED.d.thumbSrc=s;closeM();rEd()}).catch(()=>toast('No se pudo leer la imagen'))}
+ else if(t.id==='gd1'){S.ui.gd=t.value;rSetup()}
+ else if(t.id==='gd2'){S.ui.gd2=t.value;rSetup()}
+ else if(t.id==='cd'&&chg){chg.deck=t.value;chgM()}
+ else if(t.id==='auto'){S.set.auto=t.checked;save();rSet()}
+ else if(t.id==='bsel'){S.ui.bd=t.value;save();rSetup()}
+ else if(t.id==='btg'&&BE)BE.tcg=t.value;
+ else if(t.id==='bsym'&&BE){BE.sym=t.checked;S.ui.bsym=t.checked;save();const z=bz();if(BE.sym&&z){ensureTwin(z);syncTwin(z);rBz()}}
+ else if(t.id==='bsm'&&BE){BE.symMode=t.value;S.ui.bsm=t.value;save();if(BE.sym){BE.zones.forEach(z=>{const w=twin(z);if(w&&BE.zones.indexOf(z)<BE.zones.indexOf(w))Object.assign(w,mir(z))});rBz()}}
+ else if(t.id==='bfn'&&BE){BE.fitNew=t.checked;S.ui.bfn=t.checked;save()}
+ else if(t.id==='bsn'&&BE){BE.snap=t.checked;S.ui.bsn=t.checked;save();if(!BE.snap){BE.guides=[];rBz()}}
+});
+function rCwp(){
+ const e=$('#cwc');if(!e)return;
+ const w=S.set.cw,c=S.cards[0];
+ e.style.width=w+'px';e.style.height=(w*1.4)+'px';
+ e.style.backgroundImage=c?`url("${c.src}")`:'';e.className='cwc'+(c?' img':'');
+ $('#cwl').textContent=w+' px'+(S.set.auto?' · el ajuste automático está activo; desactívalo para usar este tamaño':'');
+ $('#cwp').style.opacity=S.set.auto?.55:1;
+}
+function rSet(){
+ const s=S.set;$('#hs').value=s.hand;$('#auto').checked=s.auto;$('#cw').value=s.cw;$('#cw').disabled=s.auto;$('#mc').value=s.mat;vb();rCwp();rBl();
+ document.documentElement.dataset.theme=s.theme;{const mt=document.querySelector('meta[name=theme-color]');if(mt)mt.content=s.theme==='light'?'#f0f5fb':'#090d16'}$('#mat').style.background=s.mat;
+}
+addEventListener('resize',()=>{if(view==='play'&&playing&&S.game)rGame();if(BE&&$('#bsp')){BE.bsh=0;$('#bsp').style.minHeight='';rBsp();rBz()}});
+if(!LS)setTimeout(()=>toast('Almacenamiento bloqueado (ruta content://): funciona, pero no se guardará. Abre el archivo desde el navegador (file://) o un servidor'),600);
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('#mat,.tc'))e.preventDefault()});
+$('#hud').addEventListener('wheel',e=>{e.preventDefault();setHudScale((S.set.hudScale||1)*(e.deltaY<0?1.08:.93))},{passive:false});
+load();rSet();show('imp');
+</script>
+</body>
+</html>
